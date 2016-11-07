@@ -22,6 +22,7 @@ from unittest import mock
 
 import docopt
 import fixtures
+from xdg import BaseDirectory
 
 from snapcraft import (
     storeapi,
@@ -245,3 +246,65 @@ class PushCommandTestCase(tests.TestCase):
         mock_upload.assert_called_once_with('my-snap-name', snap_file)
         mock_release.assert_called_once_with('my-snap-name', 9,
                                              ['edge', 'beta', 'candidate'])
+
+    def test_push_revision_cached_experimental_deltas_enabled(self):
+        self.useFixture(fixture_setup.FakeTerminal())
+        self.useFixture(fixture_setup.DeltaUploads())
+
+        mock_tracker = mock.Mock(storeapi.StatusTracker)
+        mock_tracker.track.return_value = {
+            'code': 'ready_to_release',
+            'processed': True,
+            'can_release': True,
+            'url': '/fake/url',
+            'revision': 9,
+        }
+        patcher = mock.patch.object(storeapi.StoreClient, 'upload')
+        mock_upload = patcher.start()
+        self.addCleanup(patcher.stop)
+        mock_upload.return_value = mock_tracker
+
+        # Create a snap
+        main(['init'])
+        main(['snap'])
+        snap_file = glob.glob('*.snap')[0]
+
+        # Upload
+        with mock.patch('snapcraft.storeapi.StatusTracker') as mock_tracker:
+            main(['push', snap_file])
+
+        revision_cache = os.path.join(
+            BaseDirectory.xdg_cache_home, 'snapcraft', 'revisions')
+
+        self.assertTrue(os.path.isfile(
+            os.path.join(revision_cache, snap_file)))
+
+    def test_push_revision_cached_experimental_deltas_disabled(self):
+        self.useFixture(fixture_setup.FakeTerminal())
+
+        mock_tracker = mock.Mock(storeapi.StatusTracker)
+        mock_tracker.track.return_value = {
+            'code': 'ready_to_release',
+            'processed': True,
+            'can_release': True,
+            'url': '/fake/url',
+            'revision': 9,
+        }
+        patcher = mock.patch.object(storeapi.StoreClient, 'upload')
+        mock_upload = patcher.start()
+        self.addCleanup(patcher.stop)
+        mock_upload.return_value = mock_tracker
+
+        # Create a snap
+        main(['init'])
+        main(['snap'])
+        snap_file = glob.glob('*.snap')[0]
+
+        # Upload
+        with mock.patch('snapcraft.storeapi.StatusTracker') as mock_tracker:
+            main(['push', snap_file])
+
+        revision_cache = os.path.join(
+            self.path, '.cache', 'snapcraft', 'revisions')
+        self.assertFalse(os.path.isfile(
+            os.path.join(revision_cache, snap_file)))

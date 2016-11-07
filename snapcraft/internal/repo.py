@@ -64,6 +64,19 @@ deb http://${security}.ubuntu.com/${suffix} ${release}-security multiverse
 _GEOIP_SERVER = "http://geoip.ubuntu.com/lookup"
 
 
+def cache_snap(snap_filename):
+    """Cache snap revision in XDG cache."""
+    cached_snap = os.path.join(
+        BaseDirectory.xdg_cache_home, 'snapcraft', 'revisions', snap_filename)
+    os.makedirs(os.path.dirname(cached_snap), exist_ok=True)
+    try:
+        shutil.copyfile(snap_filename, cached_snap)
+    except OSError:
+        logger.warning(
+            'Unable to cache snap {}.'.format(cached_snap))
+    return cached_snap
+
+
 def is_package_installed(package):
     """Return True if a package is installed on the system.
 
