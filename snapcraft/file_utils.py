@@ -154,3 +154,8 @@ def _search_and_replace_contents(file_path, search_pattern, replacement):
             f.seek(0)
             f.truncate()
             f.write(replaced)
+
+
+def executable_exists(path):
+    """Return True if 'path' exists and is readable and executable."""
+    return os.path.exists(path) and os.access(path, os.R_OK | os.X_OK)

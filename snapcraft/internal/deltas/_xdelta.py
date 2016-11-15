@@ -1,0 +1,49 @@
+# -*- Mode:Python; indent-tabs-mode:nil; tab-width:4 -*-
+#
+# Copyright (C) 2016 Canonical Ltd
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+import logging
+import shutil
+import subprocess
+
+from snapcraft.internal.deltas import BaseDeltasGenerator
+
+
+logger = logging.getLogger(__name__)
+
+
+class XDeltaGenerator(BaseDeltasGenerator):
+
+    def __init__(self, source_path, target_path):
+        self.delta_format = 'xdelta'
+        self.delta_file_extname = 'xdelta'
+        self.delta_tool_path = shutil.which('xdelta')
+        super().__init__(source_path, target_path)
+
+    def get_delta_cmd(self, source_path, target_path, delta_file):
+        return [
+            self.delta_tool_path,
+            'delta',
+            source_path,
+            target_path,
+            delta_file
+        ]
+
+    def log_delta_file(self, delta_file):
+        xdelta_output = subprocess.check_output(
+            [self.delta_tool_path, 'info', delta_file],
+            universal_newlines=True)
+        logger.debug('xdelta delta diff generation:\n{}'.format(xdelta_output))
