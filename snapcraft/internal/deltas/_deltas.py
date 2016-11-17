@@ -136,8 +136,10 @@ class BaseDeltasGenerator:
 
         returns: generated delta file path
         """
-        logger.info('Generating {} delta for {}->{}.'.format(
-                self.delta_format, self.source_path, self.target_path))
+        logger.info('Generating {} delta for {} --> {}'.format(
+            self.delta_format,
+            os.path.basename(self.source_path),
+            os.path.basename(self.target_path)))
 
         if output_dir is not None:
             # consider creating the delta file in the specified output_dir

@@ -16,8 +16,8 @@
 
 import logging
 import os
+import shutil
 
-from snapcraft.file_utils import link_or_copy
 from ._cache import SnapcraftProjectCache
 
 
@@ -36,7 +36,7 @@ class SnapCache(SnapcraftProjectCache):
         return snap_cache_path
 
     def cache(self, snap_filename, revision):
-        """Cache snap revision in XDG cache.
+        """Cache snap revision in XDG cache, unless exists.
 
         :returns: path to cached revision.
         """
@@ -45,7 +45,8 @@ class SnapCache(SnapcraftProjectCache):
             revision)
         cached_snap_path = os.path.join(self.snap_cache_dir, cached_snap)
         try:
-            link_or_copy(snap_filename, cached_snap_path)
+            if not os.path.isfile(cached_snap_path):
+                shutil.copy2(snap_filename, cached_snap_path)
         except OSError:
             logger.warning(
                 'Unable to cache snap {}.'.format(cached_snap))
@@ -75,6 +76,16 @@ class SnapCache(SnapcraftProjectCache):
                     logger.warning(
                         'Unable to purge snap {}.'.format(cached_snap))
         return pruned_files_list
+
+    def get_latest(self, snap_name):
+        """Get most recently cached snap."""
+
+        cached_snaps = [
+            os.path.join(self.snap_cache_dir, f) for f in os.listdir(
+                self.snap_cache_dir) if f.startswith(snap_name)]
+        if not cached_snaps:
+            return None
+        return max(cached_snaps, key=os.path.getctime)
 
 
 def _rewrite_snap_filename_with_revision(snap_file, revision):

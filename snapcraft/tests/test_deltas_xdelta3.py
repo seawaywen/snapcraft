@@ -161,8 +161,9 @@ class XDelta3TestCase(TestCase):
 
         self.assertThat(
             self.fake_logger.output,
-            m.Contains('Generating xdelta3 delta for {}->{}.'.format(
-                base_delta.source_path, base_delta.target_path)))
+            m.Contains('Generating xdelta3 delta for {} --> {}'.format(
+                os.path.basename(base_delta.source_path),
+                os.path.basename(base_delta.target_path))))
         self.assertThat(
             self.fake_logger.output,
             m.Contains('xdelta3 delta diff generation'))
