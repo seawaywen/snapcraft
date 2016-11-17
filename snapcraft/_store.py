@@ -385,6 +385,16 @@ def push(snap_filename, release_channels=None):
     snap_yaml = _get_data_from_snap_file(snap_filename)
     snap_name = snap_yaml['name']
     store = storeapi.StoreClient()
+
+    if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
+        snap_cache = cache.SnapCache()
+        latest_revision = get_latest_revision(snap_name)
+
+        # get cached snap
+        
+        delta_filename = snap_filename # xxx: fix
+        snap_filename = delta_filename
+
     with _requires_login():
         tracker = store.upload(snap_name, snap_filename)
 
@@ -398,7 +408,7 @@ def push(snap_filename, release_channels=None):
     tracker.raise_for_code()
 
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
-        snap_cache = cache.SnapCache()
+
         snap_cache.cache(snap_filename, result['revision'])
         snap_cache.prune(keep_revision=result['revision'])
 
@@ -546,6 +556,13 @@ def history(snap_name, series, arch):
         headers=['Rev.', 'Uploaded', 'Arch', 'Version', 'Channels'],
         tablefmt='plain')
     print(tabulated_revisions)
+
+
+def get_latest_revision(snap_name, series=None, arch=None):
+    store = storeapi.StoreClient()
+    with _requires_login():
+        history = store.get_snap_history(snap_name, series, arch)
+    return history[-1]
 
 
 def gated(snap_name):

@@ -483,12 +483,14 @@ class SCAClient(Client):
 
         return StatusTracker(response.json()['status_details_url'])
 
-    def snap_release(self, snap_name, revision, channels):
+    def snap_release(self, snap_name, revision, channels, delta_format=None):
         data = {
             'name': snap_name,
             'revision': str(revision),
             'channels': channels,
         }
+        if delta_format:
+            data['delta_format'] = delta_format
         auth = _macaroon_auth(self.conf)
         response = self.post(
             'snap-release/', data=json.dumps(data),

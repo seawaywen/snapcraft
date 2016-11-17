@@ -261,14 +261,21 @@ class PushCommandDeltasTestCase(tests.TestCase):
         if self.enable_deltas:
             self.useFixture(fixture_setup.DeltaUploads())
 
+        latest_snap_revision = 8
+        new_snap_revision = latest_snap_revision + 1
+
+        patcher = mock.patch.object(storeapi.StoreClient, 'get_snap_history')
+        mock_release = patcher.start()
+        self.addCleanup(patcher.stop)
+        mock_release.return_value = [latest_snap_revision]
+
         mock_tracker = mock.Mock(storeapi.StatusTracker)
-        snap_revision = 9
         mock_tracker.track.return_value = {
             'code': 'ready_to_release',
             'processed': True,
             'can_release': True,
             'url': '/fake/url',
-            'revision': snap_revision,
+            'revision': new_snap_revision,
         }
         patcher = mock.patch.object(storeapi.StoreClient, 'upload')
         mock_upload = patcher.start()
@@ -291,7 +298,7 @@ class PushCommandDeltasTestCase(tests.TestCase):
             'revisions')
         cached_snap = _rewrite_snap_filename_with_revision(
             snap_file,
-            snap_revision)
+            new_snap_revision)
 
         self.assertEqual(self.enable_deltas, os.path.isfile(
             os.path.join(revision_cache, cached_snap)))

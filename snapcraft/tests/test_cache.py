@@ -156,3 +156,13 @@ class SnapCachedFilePruneTestCase(tests.TestCase):
             self.assertTrue(
                 os.path.isfile(os.path.join(snap_cache.snap_cache_dir,
                                             real_cached_snap)))
+
+    def test_snap_cache_get(self):
+        self.useFixture(fixture_setup.FakeTerminal())
+        revision = 10
+        snap_file = 'my-snap-name_0.1_amd64.snap'
+        snap_cache = cache.SnapCache()
+
+        cached_snap_path = snap_cache.cache(snap_file, revision)
+        retrieved_snap = snap_cache.get(snap_file, revision)
+        self.assertEqual(retrieved_snap, cached_snap_path)

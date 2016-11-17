@@ -76,6 +76,12 @@ class SnapCache(SnapcraftProjectCache):
                         'Unable to purge snap {}.'.format(cached_snap))
         return pruned_files_list
 
+    def get(self, snap_filename, revision):
+        cached_snap = _rewrite_snap_filename_with_revision(
+            snap_filename,
+            revision)
+        return os.path.join(self.snap_cache_dir, cached_snap)
+
 
 def _rewrite_snap_filename_with_revision(snap_file, revision):
     splitf = os.path.splitext(snap_file)
