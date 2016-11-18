@@ -303,6 +303,11 @@ class PushCommandDeltasTestCase(tests.TestCase):
         self.assertEqual(self.enable_deltas, os.path.isfile(
             os.path.join(revision_cache, cached_snap)))
 
+    def test_push_revision_uses_available_delta(self):
+        self.useFixture(fixture_setup.FakeTerminal())
+        self.useFixture(fixture_setup.DeltaUploads())
+        self.assertTrue(False)
+
 
 class PushCommandDeltasWithPruneTestCase(tests.TestCase):
 
