@@ -326,6 +326,11 @@ class PushCommandDeltasWithPruneTestCase(tests.TestCase):
 
         snap_revision = 9
 
+        patcher = mock.patch.object(storeapi.StoreClient, 'get_snap_history')
+        mock_release = patcher.start()
+        self.addCleanup(patcher.stop)
+        mock_release.return_value = [snap_revision]
+
         mock_tracker = mock.Mock(storeapi.StatusTracker)
         mock_tracker.track.return_value = {
             'code': 'ready_to_release',
