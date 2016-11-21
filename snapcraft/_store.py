@@ -23,6 +23,7 @@ import logging
 import os
 import re
 import subprocess
+import sys
 import tempfile
 
 from subprocess import Popen
@@ -395,14 +396,9 @@ def push(snap_filename, release_channels=None):
     snap_name = snap_yaml['name']
     store = storeapi.StoreClient()
 
-    hasher = hashlib.sha3_384()
-    target_hash = hasher.hexdigest(os.path.basename(snap_filename))
-    source_hash = None  # hash of cached latest revision
-    delta_hash = None  # hash of delta
-
     delta_format = None
-
     #import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
+    snap_hashes = {}
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
         snap_cache = cache.SnapCache(project_name=snap_name)
         latest_revision = get_latest_revision(snap_name)
@@ -416,8 +412,14 @@ def push(snap_filename, release_channels=None):
             delta_cache = cache.DeltaCache(project_name=snap_name)
             delta_filename = xdelta_generator.make_delta(output_dir=delta_cache)
 
-            source_hash = hasher.hexdigest(os.path.basename(latest_cached_snap))
-            delta_hash = hasher.hexdigest(os.path.basename(delta_filename))
+            hash_map = {'source_hash': latest_cached_snap,
+                        'target_hash': snap_filename,
+                        'delta_hash': delta_filename}
+            for hash_type, filename in hash_map:
+                hasher = hashlib.sha3_384()
+                hasher.update(
+                    bytes(os.path.basename(filename), encoding='utf-8'))
+            snap_hashes[hash_type] = hasher.hexdigest()
 
             snap_filename = delta_filename
 
@@ -426,9 +428,9 @@ def push(snap_filename, release_channels=None):
             snap_name,
             snap_filename,
             delta_format=delta_format,
-            source_hash=source_hash,
-            target_hash=target_hash,
-            delta_hash=delta_hash)
+            source_hash=snap_hashes.get('source_hash'),
+            target_hash=snap_hashes.get('target_hash'),
+            delta_hash=snap_hashes.get('delta_hash'))
 
     result = tracker.track()
     # This is workaround until LP: #1599875 is solved
