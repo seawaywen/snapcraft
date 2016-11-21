@@ -40,6 +40,7 @@ setup(
     packages=['snapcraft',
               'snapcraft.internal',
               'snapcraft.internal.cache',
+              'snapcraft.internal.deltas',
               'snapcraft.internal.states',
               'snapcraft.plugins',
               'snapcraft.storeapi'],
