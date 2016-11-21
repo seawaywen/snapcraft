@@ -17,6 +17,7 @@
 from contextlib import contextmanager
 import datetime
 import getpass
+import hashlib
 import json
 import logging
 import os
@@ -32,8 +33,12 @@ import yaml
 from snapcraft import storeapi
 from snapcraft.internal import (
     cache,
+    deltas,
     repo,
 )
+
+if sys.version_info < (3, 6):
+    import sha3  # noqa
 
 
 logger = logging.getLogger(__name__)
@@ -373,6 +378,10 @@ def sign_build(snap_filename, key_name=None, local=False):
 def push(snap_filename, release_channels=None):
     """Push a snap_filename to the store.
 
+    If the DELTA_UPLOADS_EXPERIMENTAL envvar is set and a cached snap for the
+    latest revision is available, a delta will be generated against the snap
+    and uploaded instead.
+
     If release_channels is defined it also releases it to those channels if the
     store deems the uploaded snap as ready to release.
     """
@@ -386,29 +395,31 @@ def push(snap_filename, release_channels=None):
     snap_name = snap_yaml['name']
     store = storeapi.StoreClient()
 
-    delta_format = None
-    source_hash = None # XXX: cached snap
-    target_hash = None # XXX: built snap
-    delta_hash = None # hash of delta
+    hasher = hashlib.sha3_384()
+    target_hash = hasher.hexdigest(os.path.basename(snap_filename))
+    source_hash = None  # hash of cached latest revision
+    delta_hash = None  # hash of delta
 
+    delta_format = None
+
+    #import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
-        # generate delta if possible
         snap_cache = cache.SnapCache(project_name=snap_name)
         latest_revision = get_latest_revision(snap_name)
-
-        # get cached snap
         latest_cached_snap = snap_cache.get(snap_filename, latest_revision)
-        #import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
-        if latest_cached_snap:
-            delta_format = 'xdelta'
-            delta_filename = ''
-            snap_filename = delta_filename
-            # generate and cache delta
 
-            # set metadata
-            source_hash = None # XXX: cached snap
-            target_hash = None # XXX: built snap
-            delta_hash = None # hash of delta
+        if latest_cached_snap:
+            # generate and cache delta
+            delta_format = 'xdelta'
+            xdelta_generator = deltas.XDeltaGenerator(
+                snap_name, latest_cached_snap)
+            delta_cache = cache.DeltaCache(project_name=snap_name)
+            delta_filename = xdelta_generator.make_delta(output_dir=delta_cache)
+
+            source_hash = hasher.hexdigest(os.path.basename(latest_cached_snap))
+            delta_hash = hasher.hexdigest(os.path.basename(delta_filename))
+
+            snap_filename = delta_filename
 
     with _requires_login():
         tracker = store.upload(
