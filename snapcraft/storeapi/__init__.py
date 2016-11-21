@@ -188,7 +188,8 @@ class StoreClient():
         return self._refresh_if_necessary(
             self.sca.push_snap_build, snap_id, snap_build)
 
-    def upload(self, snap_name, snap_filename):
+    def upload(self, snap_name, snap_filename, delta_format=None,
+               source_hash=None, target_hash=None, delta_hash=None):
         # FIXME This should be raised by the function that uses the
         # discharge. --elopio -2016-06-20
         if self.conf.get('unbound_discharge') is None:
@@ -198,7 +199,9 @@ class StoreClient():
         updown_data = _upload.upload_files(snap_filename, self.updown)
 
         return self._refresh_if_necessary(
-            self.sca.snap_push_metadata, snap_name, updown_data)
+            self.sca.snap_push_metadata, snap_name, updown_data,
+            delta_format=delta_format, source_hash=source_hash,
+            target_hash=target_hash, delta_hash=delta_hash)
 
     def release(self, snap_name, revision, channels):
         return self._refresh_if_necessary(
@@ -464,7 +467,8 @@ class SCAClient(Client):
         if not response.ok:
             raise errors.StoreRegistrationError(snap_name, response)
 
-    def snap_push_metadata(self, snap_name, updown_data):
+    def snap_push_metadata(self, snap_name, updown_data, delta_format=None,
+                           delta_hash=None, source_hash=None, target_hash=None):
         data = {
             'name': snap_name,
             'series': constants.DEFAULT_SERIES,
@@ -472,6 +476,11 @@ class SCAClient(Client):
             'binary_filesize': updown_data['binary_filesize'],
             'source_uploaded': updown_data['source_uploaded'],
         }
+        if delta_format:
+            data['delta_format'] = delta_format
+            data['delta_hash'] =  delta_hash
+            data['source_hash'] = source_hash # XXX hash of cached snap
+            data['target_hash'] =  target_hash # XXX hash of built snap
         auth = _macaroon_auth(self.conf)
         response = self.post(
             'snap-push/', data=json.dumps(data),

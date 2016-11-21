@@ -386,17 +386,38 @@ def push(snap_filename, release_channels=None):
     snap_name = snap_yaml['name']
     store = storeapi.StoreClient()
 
+    delta_format = None
+    source_hash = None # XXX: cached snap
+    target_hash = None # XXX: built snap
+    delta_hash = None # hash of delta
+
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
+        # generate delta if possible
         snap_cache = cache.SnapCache(project_name=snap_name)
         latest_revision = get_latest_revision(snap_name)
 
         # get cached snap
-        
-        delta_filename = snap_filename # xxx: fix
-        snap_filename = delta_filename
+        latest_cached_snap = snap_cache.get(snap_filename, latest_revision)
+        #import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
+        if latest_cached_snap:
+            delta_format = 'xdelta'
+            delta_filename = ''
+            snap_filename = delta_filename
+            # generate delta
+
+            # set metadata
+            source_hash = None # XXX: cached snap
+            target_hash = None # XXX: built snap
+            delta_hash = None # hash of delta
 
     with _requires_login():
-        tracker = store.upload(snap_name, snap_filename)
+        tracker = store.upload(
+            snap_name,
+            snap_filename,
+            delta_format=delta_format,
+            source_hash=source_hash,
+            target_hash=target_hash,
+            delta_hash=delta_hash)
 
     result = tracker.track()
     # This is workaround until LP: #1599875 is solved

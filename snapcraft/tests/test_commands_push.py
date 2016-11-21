@@ -81,7 +81,9 @@ class PushCommandTestCase(tests.TestCase):
             'Revision 9 of \'my-snap-name\' created.',
             self.fake_logger.output)
 
-        mock_upload.assert_called_once_with('my-snap-name', snap_file)
+        mock_upload.assert_called_once_with(
+            'my-snap-name', snap_file, delta_format=None, source_hash=None,
+            target_hash=None, delta_hash=None)
 
     def test_push_without_login_must_raise_exception(self):
         snap_path = os.path.join(
@@ -149,7 +151,9 @@ class PushCommandTestCase(tests.TestCase):
             'Revision 9 of \'my-snap-name\' created.',
             self.fake_logger.output)
 
-        mock_upload.assert_called_once_with('my-snap-name', snap_file)
+        mock_upload.assert_called_once_with(
+            'my-snap-name', snap_file, delta_format=None, source_hash=None,
+            target_hash=None, delta_hash=None)
 
     def test_push_and_release_a_snap(self):
         self.useFixture(fixture_setup.FakeTerminal())
@@ -195,7 +199,9 @@ class PushCommandTestCase(tests.TestCase):
             'Revision 9 of \'my-snap-name\' created.',
             self.fake_logger.output)
 
-        mock_upload.assert_called_once_with('my-snap-name', snap_file)
+        mock_upload.assert_called_once_with(
+            'my-snap-name', snap_file, delta_format=None, source_hash=None,
+            target_hash=None, delta_hash=None)
         mock_release.assert_called_once_with('my-snap-name', 9, ['beta'])
 
     def test_push_and_release_a_snap_to_N_channels(self):
@@ -244,7 +250,9 @@ class PushCommandTestCase(tests.TestCase):
             'Revision 9 of \'my-snap-name\' created.',
             self.fake_logger.output)
 
-        mock_upload.assert_called_once_with('my-snap-name', snap_file)
+        mock_upload.assert_called_once_with(
+            'my-snap-name', snap_file, delta_format=None, source_hash=None,
+            target_hash=None, delta_hash=None)
         mock_release.assert_called_once_with('my-snap-name', 9,
                                              ['edge', 'beta', 'candidate'])
 
@@ -256,18 +264,20 @@ class PushCommandDeltasTestCase(tests.TestCase):
         ('without deltas', dict(enable_deltas=False)),
     ]
 
+    def setUp(self):
+        super().setUp()
+        self.latest_snap_revision = 8
+        self.new_snap_revision = self.latest_snap_revision + 1
+
+        patcher = mock.patch.object(storeapi.StoreClient, 'get_snap_history')
+        mock_release = patcher.start()
+        mock_release.return_value = [self.latest_snap_revision]
+        self.addCleanup(patcher.stop)
+
     def test_push_revision_cached_with_experimental_deltas(self):
         self.useFixture(fixture_setup.FakeTerminal())
         if self.enable_deltas:
             self.useFixture(fixture_setup.DeltaUploads())
-
-        latest_snap_revision = 8
-        new_snap_revision = latest_snap_revision + 1
-
-        patcher = mock.patch.object(storeapi.StoreClient, 'get_snap_history')
-        mock_release = patcher.start()
-        self.addCleanup(patcher.stop)
-        mock_release.return_value = [latest_snap_revision]
 
         mock_tracker = mock.Mock(storeapi.StatusTracker)
         mock_tracker.track.return_value = {
@@ -275,7 +285,7 @@ class PushCommandDeltasTestCase(tests.TestCase):
             'processed': True,
             'can_release': True,
             'url': '/fake/url',
-            'revision': new_snap_revision,
+            'revision': self.new_snap_revision,
         }
         patcher = mock.patch.object(storeapi.StoreClient, 'upload')
         mock_upload = patcher.start()
@@ -298,7 +308,7 @@ class PushCommandDeltasTestCase(tests.TestCase):
             'revisions')
         cached_snap = _rewrite_snap_filename_with_revision(
             snap_file,
-            new_snap_revision)
+            self.new_snap_revision)
 
         self.assertEqual(self.enable_deltas, os.path.isfile(
             os.path.join(revision_cache, cached_snap)))
@@ -306,6 +316,15 @@ class PushCommandDeltasTestCase(tests.TestCase):
     def test_push_revision_uses_available_delta(self):
         self.useFixture(fixture_setup.FakeTerminal())
         self.useFixture(fixture_setup.DeltaUploads())
+
+
+        # Create a snap
+        main(['init'])
+        main(['snap'])
+        snap_file = glob.glob('*.snap')[0]
+
+        # create snap 1 revision behind cached snap
+
         self.assertTrue(False)
 
 

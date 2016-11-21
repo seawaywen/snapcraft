@@ -80,7 +80,10 @@ class SnapCache(SnapcraftProjectCache):
         cached_snap = _rewrite_snap_filename_with_revision(
             snap_filename,
             revision)
-        return os.path.join(self.snap_cache_dir, cached_snap)
+        cached_snap_path = os.path.join(self.snap_cache_dir, cached_snap)
+        if not os.path.isfile(cached_snap_path):
+            return None
+        return cached_snap_path
 
 
 def _rewrite_snap_filename_with_revision(snap_file, revision):
