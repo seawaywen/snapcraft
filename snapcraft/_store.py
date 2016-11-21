@@ -403,7 +403,7 @@ def push(snap_filename, release_channels=None):
             delta_format = 'xdelta'
             delta_filename = ''
             snap_filename = delta_filename
-            # generate delta
+            # generate and cache delta
 
             # set metadata
             source_hash = None # XXX: cached snap
