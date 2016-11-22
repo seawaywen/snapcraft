@@ -90,6 +90,25 @@ class SnapCacheTestCase(tests.TestCase):
                 None,
                 _get_revision_from_snap_filename(invalid_snap_file))
 
+    def test_snap_cache_get_latest(self):
+        self.useFixture(fixture_setup.FakeTerminal())
+
+        revisions = [8, 9, 10]
+        snap_file = 'my-snap-name_0.1_amd64.snap'
+
+        snap_cache = cache.SnapCache(project_name='my-snap-name')
+
+        # create dummy cached snaps
+        open(os.path.join(self.path, snap_file), 'a').close()
+        for rev in revisions:
+            snap_cache.cache(snap_file, rev)
+        latest_snap = snap_cache.get_latest(snap_file)
+
+        expected_snap = os.path.join(
+            snap_cache.snap_cache_dir, 'my-snap-name_0.1_amd64_10.snap')
+
+        self.assertEqual(expected_snap, latest_snap)
+
 
 class SnapCachedFilePruneTestCase(tests.TestCase):
 
@@ -156,13 +175,3 @@ class SnapCachedFilePruneTestCase(tests.TestCase):
             self.assertTrue(
                 os.path.isfile(os.path.join(snap_cache.snap_cache_dir,
                                             real_cached_snap)))
-
-    def test_snap_cache_get(self):
-        self.useFixture(fixture_setup.FakeTerminal())
-        revision = 10
-        snap_file = 'my-snap-name_0.1_amd64.snap'
-        snap_cache = cache.SnapCache()
-
-        cached_snap_path = snap_cache.cache(snap_file, revision)
-        retrieved_snap = snap_cache.get(snap_file, revision)
-        self.assertEqual(retrieved_snap, cached_snap_path)

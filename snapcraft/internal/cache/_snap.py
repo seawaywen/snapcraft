@@ -76,14 +76,17 @@ class SnapCache(SnapcraftProjectCache):
                         'Unable to purge snap {}.'.format(cached_snap))
         return pruned_files_list
 
-    def get(self, snap_filename, revision):
-        cached_snap = _rewrite_snap_filename_with_revision(
-            snap_filename,
-            revision)
-        cached_snap_path = os.path.join(self.snap_cache_dir, cached_snap)
-        if not os.path.isfile(cached_snap_path):
+    def get_latest(self, snap_filename):
+        """Get most recently cached snap."""
+        prefix = os.path.splitext(snap_filename)[0]
+        cached_snaps = [
+            os.path.join(self.snap_cache_dir, f) for f in os.listdir(
+            self.snap_cache_dir) if f.startswith(prefix)]
+
+        if not cached_snaps:
             return None
-        return cached_snap_path
+        return max(cached_snaps, key=os.path.getctime)
+
 
 
 def _rewrite_snap_filename_with_revision(snap_file, revision):
