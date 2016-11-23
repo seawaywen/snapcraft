@@ -16,9 +16,10 @@
 
 
 import logging
+import shutil
 import subprocess
 
-from ._deltas import BaseDeltasGenerator
+from snapcraft.internal.deltas import BaseDeltasGenerator
 
 
 logger = logging.getLogger(__name__)
@@ -26,9 +27,14 @@ logger = logging.getLogger(__name__)
 
 class XDeltaGenerator(BaseDeltasGenerator):
 
-    delta_format = 'xdelta'
-    delta_file_extname = 'xdelta'
-    delta_tool_path = '/usr/bin/xdelta'
+    def __init__(self, *, source_path, target_path):
+        delta_format = 'xdelta'
+        delta_tool_path = shutil.which(delta_format)
+        super().__init__(source_path=source_path,
+                         target_path=target_path,
+                         delta_file_extname='xdelta',
+                         delta_format=delta_format,
+                         delta_tool_path=delta_tool_path)
 
     def get_delta_cmd(self, source_path, target_path, delta_file):
         return [
@@ -40,9 +46,7 @@ class XDeltaGenerator(BaseDeltasGenerator):
         ]
 
     def log_delta_file(self, delta_file):
-        logger.debug(
-            "xdelta delta diff generation:\n%s" %
-            subprocess.check_output(
-                [self.delta_tool_path, 'info', delta_file],
-                universal_newlines=True)
-        )
+        xdelta_output = subprocess.check_output(
+            [self.delta_tool_path, 'info', delta_file],
+            universal_newlines=True)
+        logger.debug('xdelta delta diff generation:\n{}'.format(xdelta_output))
