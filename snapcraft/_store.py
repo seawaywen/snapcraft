@@ -417,7 +417,7 @@ def push(snap_filename, release_channels=None):
                 hasher = hashlib.sha3_384()
                 hasher.update(
                     bytes(os.path.basename(filename), encoding='utf-8'))
-            snap_hashes[hash_type] = hasher.hexdigest()
+                snap_hashes[hash_type] = hasher.hexdigest()
             snap_filename = delta_filename  # upload delta instead
 
     with _requires_login():
