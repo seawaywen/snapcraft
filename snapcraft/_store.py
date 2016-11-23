@@ -403,7 +403,7 @@ def push(snap_filename, release_channels=None):
         cached_snap = snap_cache.get_latest(snap_filename)
 
         if cached_snap:
-            # generate and cache delta
+            # generate delta if earlier snap revision cached
             delta_format = 'xdelta'
             xdelta_generator = deltas.XDeltaGenerator(
                 snap_name, cached_snap)
