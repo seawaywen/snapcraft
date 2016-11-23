@@ -479,8 +479,8 @@ class SCAClient(Client):
         if delta_format:
             data['delta_format'] = delta_format
             data['delta_hash'] =  delta_hash
-            data['source_hash'] = source_hash # XXX hash of cached snap
-            data['target_hash'] =  target_hash # XXX hash of built snap
+            data['source_hash'] = source_hash
+            data['target_hash'] =  target_hash
         auth = _macaroon_auth(self.conf)
         response = self.post(
             'snap-push/', data=json.dumps(data),

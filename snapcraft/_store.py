@@ -440,6 +440,10 @@ def push(snap_filename, release_channels=None):
     tracker.raise_for_code()
 
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
+        try:
+            os.remove(delta_filename)
+        except OSError:
+            logger.warning('Unable to remove delta {}'.format(delta_filename))
         snap_cache.cache(snap_filename, result['revision'])
         snap_cache.prune(keep_revision=result['revision'])
 
