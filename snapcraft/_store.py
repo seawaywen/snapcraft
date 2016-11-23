@@ -407,7 +407,8 @@ def push(snap_filename, release_channels=None):
             # generate delta if earlier snap revision cached
             delta_format = 'xdelta'
             source_snap = os.path.join(os.getcwd(), snap_filename)
-            xdelta_generator = deltas.XDeltaGenerator(source_snap, cached_snap)
+            xdelta_generator = deltas.XDeltaGenerator(
+                source_path=source_snap, target_path=cached_snap)
             delta_filename = xdelta_generator.make_delta()
 
             hash_map = {'source_hash': cached_snap,
