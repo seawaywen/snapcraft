@@ -336,7 +336,7 @@ class PushCommandDeltasTestCase(tests.TestCase):
         with mock.patch('snapcraft.storeapi.StatusTracker') as mock_tracker:
             main(['push', new_snap_file])
 
-        args, kwargs = self.mock_upload.call_args
+        _, kwargs = self.mock_upload.call_args
         if self.enable_deltas:
             self.assertEqual(kwargs['delta_format'], 'xdelta')
         else:
