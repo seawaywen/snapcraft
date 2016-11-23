@@ -408,7 +408,7 @@ def push(snap_filename, release_channels=None):
             xdelta_generator = deltas.XDeltaGenerator(
                 snap_name, cached_snap)
 
-            delta_filename = xdelta_generator.make_delta(output_dir=delta_cache)
+            delta_filename = xdelta_generator.make_delta()
 
             hash_map = {'source_hash': cached_snap,
                         'target_hash': snap_filename,
