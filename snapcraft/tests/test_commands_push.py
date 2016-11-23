@@ -28,7 +28,6 @@ from snapcraft import (
     storeapi,
     tests
 )
-from snapcraft.internal import cache
 from snapcraft.internal.cache._snap import _rewrite_snap_filename_with_revision
 from snapcraft.main import main
 from snapcraft.storeapi.errors import StoreUploadError
@@ -299,7 +298,7 @@ class PushCommandDeltasTestCase(tests.TestCase):
         snap_file = glob.glob('*.snap')[0]
 
         # Upload
-        with mock.patch('snapcraft.storeapi.StatusTracker') as mock_tracker:
+        with mock.patch('snapcraft.storeapi.StatusTracker'):
             main(['push', snap_file])
 
         revision_cache = os.path.join(
@@ -325,7 +324,7 @@ class PushCommandDeltasTestCase(tests.TestCase):
         snap_file = glob.glob('*.snap')[0]
 
         # Upload
-        with mock.patch('snapcraft.storeapi.StatusTracker') as mock_tracker:
+        with mock.patch('snapcraft.storeapi.StatusTracker'):
             main(['push', snap_file])
 
         # create an additional snap
@@ -333,7 +332,7 @@ class PushCommandDeltasTestCase(tests.TestCase):
         new_snap_file = glob.glob('*.snap')[0]
 
         # Upload
-        with mock.patch('snapcraft.storeapi.StatusTracker') as mock_tracker:
+        with mock.patch('snapcraft.storeapi.StatusTracker'):
             main(['push', new_snap_file])
 
         _, kwargs = self.mock_upload.call_args

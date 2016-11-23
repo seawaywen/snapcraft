@@ -81,12 +81,11 @@ class SnapCache(SnapcraftProjectCache):
         prefix = os.path.splitext(snap_filename)[0]
         cached_snaps = [
             os.path.join(self.snap_cache_dir, f) for f in os.listdir(
-            self.snap_cache_dir) if f.startswith(prefix)]
+                self.snap_cache_dir) if f.startswith(prefix)]
 
         if not cached_snaps:
             return None
         return max(cached_snaps, key=os.path.getctime)
-
 
 
 def _rewrite_snap_filename_with_revision(snap_file, revision):

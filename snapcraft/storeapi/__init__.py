@@ -467,8 +467,9 @@ class SCAClient(Client):
         if not response.ok:
             raise errors.StoreRegistrationError(snap_name, response)
 
-    def snap_push_metadata(self, snap_name, updown_data, delta_format=None,
-                           delta_hash=None, source_hash=None, target_hash=None):
+    def snap_push_metadata(self, snap_name, updown_data,
+                           delta_format=None, delta_hash=None,
+                           source_hash=None, target_hash=None):
         data = {
             'name': snap_name,
             'series': constants.DEFAULT_SERIES,
@@ -478,9 +479,9 @@ class SCAClient(Client):
         }
         if delta_format:
             data['delta_format'] = delta_format
-            data['delta_hash'] =  delta_hash
+            data['delta_hash'] = delta_hash
             data['source_hash'] = source_hash
-            data['target_hash'] =  target_hash
+            data['target_hash'] = target_hash
         auth = _macaroon_auth(self.conf)
         response = self.post(
             'snap-push/', data=json.dumps(data),
