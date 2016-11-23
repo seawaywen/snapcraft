@@ -94,15 +94,15 @@ class SnapCacheTestCase(tests.TestCase):
         self.useFixture(fixture_setup.FakeTerminal())
 
         revisions = [8, 9, 10]
+        snap_name = 'my-snap-name'
         snap_file = 'my-snap-name_0.1_amd64.snap'
-
         snap_cache = cache.SnapCache(project_name='my-snap-name')
 
         # create dummy cached snaps
         open(os.path.join(self.path, snap_file), 'a').close()
         for rev in revisions:
             snap_cache.cache(snap_file, rev)
-        latest_snap = snap_cache.get_latest(snap_file)
+        latest_snap = snap_cache.get_latest(snap_name)
 
         expected_snap = os.path.join(
             snap_cache.snap_cache_dir, 'my-snap-name_0.1_amd64_10.snap')

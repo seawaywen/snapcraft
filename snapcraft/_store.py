@@ -399,18 +399,20 @@ def push(snap_filename, release_channels=None):
     delta_format = None
     delta_filename = ''
     snap_hashes = {}
+
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
         snap_cache = cache.SnapCache(project_name=snap_name)
-        cached_snap = snap_cache.get_latest(snap_filename)
+        cached_snap = snap_cache.get_latest(snap_name)
 
         if cached_snap:
+            logger.info('Successfully got cached snap {}'.format(cached_snap))
             # generate delta if earlier snap revision cached
             delta_format = 'xdelta'
             source_snap = os.path.join(os.getcwd(), snap_filename)
             xdelta_generator = deltas.XDeltaGenerator(
                 source_path=source_snap, target_path=cached_snap)
             delta_filename = xdelta_generator.make_delta()
-
+            logger.info('Delta generated: {}'.format(delta_filename))
             hash_map = {'source_hash': cached_snap,
                         'target_hash': snap_filename,
                         'delta_hash': delta_filename}
@@ -441,10 +443,12 @@ def push(snap_filename, release_channels=None):
     tracker.raise_for_code()
 
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
-        try:
-            os.remove(delta_filename)
-        except OSError:
-            logger.warning('Unable to remove delta {}'.format(delta_filename))
+        if os.path.isfile(delta_filename):
+            try:
+                os.remove(delta_filename)
+            except OSError:
+                logger.warning(
+                    'Unable to remove delta {}'.format(delta_filename))
         snap_cache.cache(snap_filename, result['revision'])
         snap_cache.prune(keep_revision=result['revision'])
 
