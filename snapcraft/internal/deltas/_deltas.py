@@ -17,7 +17,6 @@
 
 import logging
 import os
-import shutil
 import subprocess
 import time
 
@@ -46,24 +45,25 @@ class BaseDeltasGenerator:
     This class is responsible for the snap delta file generation
     """
 
-    delta_format = None
-    delta_file_extname = 'delta'
-    delta_tool_path = None
+    def __init__(self, *, source_path, target_path,
+                 delta_file_extname='delta', delta_format=None,
+                 delta_tool_path=None):
 
-    def __init__(self, source_path, target_path):
         self.source_path = source_path
         self.target_path = target_path
-        self.pre_check()
+        self.delta_format = delta_format
+        self.delta_file_extname = delta_file_extname
+        self.delta_tool_path = delta_tool_path
 
-    def pre_check(self):
+        # some pre-checks
         self._check_properties()
         self._check_file_existence()
         self._check_delta_gen_tool()
 
     def _check_properties(self):
-        if self.delta_format is None:
+        if not self.delta_format:
             raise DeltaFormatError()
-        if self.delta_tool_path is None:
+        if not self.delta_tool_path:
             raise DeltaToolError()
         if self.delta_format not in delta_formats_options:
             raise DeltaFormatOptionError(
@@ -73,20 +73,16 @@ class BaseDeltasGenerator:
     def _check_file_existence(self):
         if not os.path.exists(self.source_path):
             raise ValueError(
-                'source file {} not exist'.format(self.source_path))
+                'source file {!r} not exist'.format(self.source_path))
 
         if not os.path.exists(self.target_path):
             raise ValueError(
-                'target file {} not exist'.format(self.target_path))
+                'target file {!r} not exist'.format(self.target_path))
 
     def _check_delta_gen_tool(self):
-        """check if the delta generation tool exists"""
+        """Check if the delta generation tool exists"""
         if not file_utils.executable_exists(self.delta_tool_path):
-            delta_path = shutil.which(self.delta_format)
-            if not delta_path:
-                raise DeltaToolError(delta_tool=self.delta_path)
-            else:
-                self.delta_tool_path = delta_path
+            raise DeltaToolError(delta_tool=self.delta_tool_path)
 
     def find_unique_file_name(self, path_hint):
         """Return a path on disk similar to 'path_hint' that does not exist.

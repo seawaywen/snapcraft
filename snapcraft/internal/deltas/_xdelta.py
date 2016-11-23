@@ -27,11 +27,14 @@ logger = logging.getLogger(__name__)
 
 class XDeltaGenerator(BaseDeltasGenerator):
 
-    def __init__(self, source_path, target_path):
-        self.delta_format = 'xdelta'
-        self.delta_file_extname = 'xdelta'
-        self.delta_tool_path = shutil.which('xdelta')
-        super().__init__(source_path, target_path)
+    def __init__(self, *, source_path, target_path):
+        delta_format = 'xdelta'
+        delta_tool_path = shutil.which(delta_format)
+        super().__init__(source_path=source_path,
+                         target_path=target_path,
+                         delta_file_extname='xdelta',
+                         delta_format=delta_format,
+                         delta_tool_path=delta_tool_path)
 
     def get_delta_cmd(self, source_path, target_path, delta_file):
         return [

@@ -43,10 +43,9 @@ class BaseDeltaGenerationTestCase(TestCase):
             f.write(b'This is the target file.')
 
     def test_find_unique_file_name(self):
-        class Tmpdelta(deltas.BaseDeltasGenerator):
-            delta_format = 'xdelta'
-            delta_tool_path = 'delta-gen-tool-path'
-        tmp_delta = Tmpdelta(self.source_file, self.target_file)
+        tmp_delta = deltas.BaseDeltasGenerator(
+            source_path=self.source_file, target_path=self.target_file,
+            delta_format='xdelta', delta_tool_path='/usr/bin/xdelta')
 
         unique_file_name = tmp_delta.find_unique_file_name(
             tmp_delta.source_path)
@@ -62,43 +61,52 @@ class BaseDeltaGenerationTestCase(TestCase):
         )
 
     def test_not_set_delta_property_correctly(self):
-        class Xdelta(deltas.BaseDeltasGenerator):
-            delta_tool_path = 'delta-gen-tool-path'
 
         self.assertThat(
-            lambda: Xdelta(self.source_file, self.target_file),
+            lambda: deltas.BaseDeltasGenerator(
+                source_path=self.source_file, target_path=self.target_file,
+                delta_format=None, delta_tool_path='/usr/bin/xdelta'),
             m.raises(deltas.errors.DeltaFormatError)
         )
         exception = self.assertRaises(deltas.errors.DeltaFormatError,
-                                      Xdelta,
-                                      self.source_file, self.target_file)
+                                      deltas.BaseDeltasGenerator,
+                                      source_path=self.source_file,
+                                      target_path=self.target_file,
+                                      delta_format=None,
+                                      delta_tool_path='/usr/bin/xdelta')
         expected = 'delta_format must be set in subclass!'
         self.assertEqual(str(exception), expected)
 
-        class Ydelta(deltas.BaseDeltasGenerator):
-            delta_format = 'xdelta'
-
         self.assertThat(
-            lambda: Ydelta(self.source_file, self.target_file),
+            lambda: deltas.BaseDeltasGenerator(
+                source_path=self.source_file, target_path=self.target_file,
+                delta_format='xdelta',
+                delta_tool_path=None),
             m.raises(deltas.errors.DeltaToolError)
         )
         exception = self.assertRaises(deltas.errors.DeltaToolError,
-                                      Ydelta,
-                                      self.source_file, self.target_file)
+                                      deltas.BaseDeltasGenerator,
+                                      source_path=self.source_file,
+                                      target_path=self.target_file,
+                                      delta_format='xdelta',
+                                      delta_tool_path=None)
         expected = 'delta_tool_path must be set in subclass!'
         self.assertEqual(str(exception), expected)
 
-        class Zdelta(deltas.BaseDeltasGenerator):
-            delta_format = 'invalid-delta-format'
-            delta_tool_path = 'delta-gen-tool-path'
-
         self.assertThat(
-            lambda: Zdelta(self.source_file, self.target_file),
+            lambda: deltas.BaseDeltasGenerator(
+                source_path=self.source_file,
+                target_path=self.target_file,
+                delta_format='not-defined',
+                delta_tool_path='/usr/bin/xdelta'),
             m.raises(deltas.errors.DeltaFormatOptionError)
         )
         exception = self.assertRaises(deltas.errors.DeltaFormatOptionError,
-                                      Zdelta,
-                                      self.source_file, self.target_file)
+                                      deltas.BaseDeltasGenerator,
+                                      source_path=self.source_file,
+                                      target_path=self.target_file,
+                                      delta_format='invalid-delta-format',
+                                      delta_tool_path='/usr/bin/xdelta')
         expected = """delta_format must be a option in ['xdelta'].
 for now delta_format='invalid-delta-format'"""
         self.assertEqual(str(exception), expected)
@@ -109,20 +117,30 @@ for now delta_format='invalid-delta-format'"""
             delta_tool_path = 'delta-gen-tool-path'
 
         self.assertThat(
-            lambda: Tmpdelta('invalid-source-file', self.target_file),
+            lambda: deltas.BaseDeltasGenerator(
+                source_path='invalid-source-file',
+                target_path=self.target_file,
+                delta_format='xdelta',
+                delta_tool_path='delta-gen-tool-path'),
             m.raises(ValueError)
         )
         self.assertThat(
-            lambda: Tmpdelta(self.source_file, 'invalid-target-file'),
+            lambda: deltas.BaseDeltasGenerator(
+                source_path=self.source_file,
+                target_path='invalid-target_file',
+                delta_format='xdelta',
+                delta_tool_path='delta-gen-tool-path'),
             m.raises(ValueError)
         )
 
     def test_subclass_not_implement_get_delta_cmd(self):
-        class Tmpdelta(deltas.BaseDeltasGenerator):
-            delta_format = 'xdelta'
-            delta_tool_path = 'delta-gen-tool-path'
 
-        tmp_delta = Tmpdelta(self.source_file, self.target_file)
+        tmp_delta = deltas.BaseDeltasGenerator(
+            source_path=self.source_file,
+            target_path=self.target_file,
+            delta_format='xdelta',
+            delta_tool_path='/usr/bin/xdelta')
+
         self.assertThat(
             lambda: tmp_delta.make_delta(),
             m.raises(NotImplementedError)

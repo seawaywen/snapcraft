@@ -87,19 +87,20 @@ class XDeltaTestCase(TestCase):
 
         self.assertThat(
             lambda: deltas.XDeltaGenerator(
-                self.source_file, self.target_file),
+                source_path=self.source_file, target_path=self.target_file),
             m.raises(deltas.errors.DeltaToolError)
         )
         exception = self.assertRaises(deltas.errors.DeltaToolError,
                                       deltas.XDeltaGenerator,
-                                      self.source_file, self.target_file)
+                                      source_path=self.source_file,
+                                      target_path=self.target_file)
         expected = 'delta_tool_path must be set in subclass!'
         self.assertEqual(str(exception), expected)
 
     def test_xdelta(self):
         self.generate_snap_pair()
         base_delta = deltas.XDeltaGenerator(
-            self.source_file, self.target_file)
+            source_path=self.source_file, target_path=self.target_file)
         path = base_delta.make_delta()
 
         self.assertThat(path, m.FileExists())
@@ -110,7 +111,7 @@ class XDeltaTestCase(TestCase):
     def test_xdelta_with_progress_indicator(self):
         self.generate_snap_pair()
         base_delta = deltas.XDeltaGenerator(
-            self.source_file, self.target_file)
+            source_path=self.source_file, target_path=self.target_file)
 
         message = 'creating delta file from {!r}...'.format(
             self.source_file)
@@ -131,7 +132,7 @@ class XDeltaTestCase(TestCase):
     def test_xdelta_with_custom_output_dir(self):
         self.generate_snap_pair()
         base_delta = deltas.XDeltaGenerator(
-            self.source_file, self.target_file)
+            source_path=self.source_file, target_path=self.target_file)
         delta_filename = '{}.{}'.format(
             os.path.split(base_delta.target_path)[1],
             base_delta.delta_file_extname)
@@ -154,7 +155,7 @@ class XDeltaTestCase(TestCase):
     def test_xdelta_logs(self):
         self.generate_snap_pair()
         base_delta = deltas.XDeltaGenerator(
-            self.source_file, self.target_file)
+            source_path=self.source_file, target_path=self.target_file)
         base_delta.make_delta()
 
         self.assertThat(
@@ -177,7 +178,7 @@ class XDeltaTestCase(TestCase):
 
         self.generate_snap_pair()
         base_delta = deltas.XDeltaGenerator(
-            self.source_file, self.target_file)
+            source_path=self.source_file, target_path=self.target_file)
         self.assertThat(
             lambda: base_delta.make_delta(),
             m.raises(deltas.errors.DeltaGenerationError)
