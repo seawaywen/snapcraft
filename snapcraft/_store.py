@@ -396,7 +396,6 @@ def push(snap_filename, release_channels=None):
     snap_name = snap_yaml['name']
     store = storeapi.StoreClient()
 
-    #import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
     delta_format = None
     snap_hashes = {}
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
