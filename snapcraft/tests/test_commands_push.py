@@ -28,6 +28,7 @@ from snapcraft import (
     storeapi,
     tests
 )
+from snapcraft.internal import cache
 from snapcraft.internal.cache._snap import _rewrite_snap_filename_with_revision
 from snapcraft.main import main
 from snapcraft.storeapi.errors import StoreUploadError
@@ -269,16 +270,6 @@ class PushCommandDeltasTestCase(tests.TestCase):
         self.latest_snap_revision = 8
         self.new_snap_revision = self.latest_snap_revision + 1
 
-        patcher = mock.patch.object(storeapi.StoreClient, 'get_snap_history')
-        mock_release = patcher.start()
-        mock_release.return_value = [self.latest_snap_revision]
-        self.addCleanup(patcher.stop)
-
-    def test_push_revision_cached_with_experimental_deltas(self):
-        self.useFixture(fixture_setup.FakeTerminal())
-        if self.enable_deltas:
-            self.useFixture(fixture_setup.DeltaUploads())
-
         mock_tracker = mock.Mock(storeapi.StatusTracker)
         mock_tracker.track.return_value = {
             'code': 'ready_to_release',
@@ -287,10 +278,20 @@ class PushCommandDeltasTestCase(tests.TestCase):
             'url': '/fake/url',
             'revision': self.new_snap_revision,
         }
-        patcher = mock.patch.object(storeapi.StoreClient, 'upload')
-        mock_upload = patcher.start()
+        patcher = mock.patch.object(storeapi.StoreClient, 'get_snap_history')
+        mock_release = patcher.start()
+        mock_release.return_value = [self.latest_snap_revision]
         self.addCleanup(patcher.stop)
-        mock_upload.return_value = mock_tracker
+
+        patcher = mock.patch.object(storeapi.StoreClient, 'upload')
+        self.mock_upload = patcher.start()
+        self.addCleanup(patcher.stop)
+        self.mock_upload.return_value = mock_tracker
+
+    def test_push_revision_cached_with_experimental_deltas(self):
+        self.useFixture(fixture_setup.FakeTerminal())
+        if self.enable_deltas:
+            self.useFixture(fixture_setup.DeltaUploads())
 
         # Create a snap
         main(['init'])
@@ -315,17 +316,31 @@ class PushCommandDeltasTestCase(tests.TestCase):
 
     def test_push_revision_uses_available_delta(self):
         self.useFixture(fixture_setup.FakeTerminal())
-        self.useFixture(fixture_setup.DeltaUploads())
-
+        if self.enable_deltas:
+            self.useFixture(fixture_setup.DeltaUploads())
 
         # Create a snap
         main(['init'])
         main(['snap'])
         snap_file = glob.glob('*.snap')[0]
 
-        # create snap 1 revision behind cached snap
+        # Upload
+        with mock.patch('snapcraft.storeapi.StatusTracker') as mock_tracker:
+            main(['push', snap_file])
 
-        self.assertTrue(False)
+        # create an additional snap
+        main(['snap'])
+        new_snap_file = glob.glob('*.snap')[0]
+
+        # Upload
+        with mock.patch('snapcraft.storeapi.StatusTracker') as mock_tracker:
+            main(['push', new_snap_file])
+
+        # use any?
+        if self.enable_deltas:
+            self.mock_upload.assert_called_once_with(
+                'my-snap-name', snap_file, delta_format='xdelta', source_hash=None,
+                target_hash=None, delta_hash=None)
 
 
 class PushCommandDeltasWithPruneTestCase(tests.TestCase):

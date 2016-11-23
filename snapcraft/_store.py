@@ -397,6 +397,7 @@ def push(snap_filename, release_channels=None):
     store = storeapi.StoreClient()
 
     delta_format = None
+    delta_filename = ''
     snap_hashes = {}
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
         snap_cache = cache.SnapCache(project_name=snap_name)
@@ -405,19 +406,19 @@ def push(snap_filename, release_channels=None):
         if cached_snap:
             # generate delta if earlier snap revision cached
             delta_format = 'xdelta'
-            xdelta_generator = deltas.XDeltaGenerator(
-                snap_name, cached_snap)
-
+            source_snap = os.path.join(os.getcwd(), snap_filename)
+            xdelta_generator = deltas.XDeltaGenerator(source_snap, cached_snap)
             delta_filename = xdelta_generator.make_delta()
 
             hash_map = {'source_hash': cached_snap,
                         'target_hash': snap_filename,
                         'delta_hash': delta_filename}
-            for hash_type, filename in hash_map:
+            for hash_type, filename in hash_map.items():
                 hasher = hashlib.sha3_384()
                 hasher.update(
                     bytes(os.path.basename(filename), encoding='utf-8'))
                 snap_hashes[hash_type] = hasher.hexdigest()
+
             snap_filename = delta_filename  # upload delta instead
 
     with _requires_login():
