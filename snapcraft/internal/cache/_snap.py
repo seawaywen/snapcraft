@@ -36,7 +36,7 @@ class SnapCache(SnapcraftProjectCache):
         return snap_cache_path
 
     def cache(self, snap_filename, revision):
-        """Cache snap revision in XDG cache.
+        """Cache snap revision in XDG cache, unless exists.
 
         :returns: path to cached revision.
         """
@@ -45,7 +45,8 @@ class SnapCache(SnapcraftProjectCache):
             revision)
         cached_snap_path = os.path.join(self.snap_cache_dir, cached_snap)
         try:
-            shutil.copy2(snap_filename, cached_snap_path)
+            if not os.path.isfile(cached_snap_path):
+                shutil.copy2(snap_filename, cached_snap_path)
         except OSError:
             logger.warning(
                 'Unable to cache snap {}.'.format(cached_snap))

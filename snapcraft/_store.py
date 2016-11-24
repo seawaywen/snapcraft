@@ -37,6 +37,7 @@ from snapcraft.internal import (
     deltas,
     repo,
 )
+from snapcraft.internal.deltas.errors import DeltaGenerationError
 
 if sys.version_info < (3, 6):
     import sha3  # noqa
@@ -408,11 +409,18 @@ def push(snap_filename, release_channels=None):
             logger.info('Successfully got cached snap {}'.format(cached_snap))
             # generate delta if earlier snap revision cached
             delta_format = 'xdelta'
-            source_snap = os.path.join(os.getcwd(), snap_filename)
-            xdelta_generator = deltas.XDeltaGenerator(
-                source_path=source_snap, target_path=cached_snap)
-            delta_filename = xdelta_generator.make_delta()
-            logger.info('Delta generated: {}'.format(delta_filename))
+            target_snap = os.path.join(os.getcwd(), snap_filename)
+
+            try:
+                xdelta_generator = deltas.XDeltaGenerator(
+                    source_path=cached_snap, target_path=target_snap)
+                delta_filename = xdelta_generator.make_delta()
+                logger.info('Delta generated: {}'.format(delta_filename))
+            except DeltaGenerationError:
+                logger.warning(
+                    'Delta generation failed for source: {}, target: {}'.format(
+                        cached_snap, target_snap))
+
             file_hash_map = {'source_hash': cached_snap,
                              'target_hash': snap_filename,
                              'delta_hash': delta_filename}
@@ -420,8 +428,10 @@ def push(snap_filename, release_channels=None):
                 hasher = hashlib.sha3_384()
                 hasher.update(open(filename, 'rb').read())
                 snap_hashes[hash_type] = hasher.hexdigest()
-            snap_filename = delta_filename  # upload delta instead
-    #import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
+
+            if delta_filename and None not in snap_hashes.values():
+                snap_filename = delta_filename  # upload delta instead
+
     with _requires_login():
         tracker = store.upload(
             snap_name,
