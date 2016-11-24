@@ -419,9 +419,8 @@ def push(snap_filename, release_channels=None):
             for hash_type, filename in hash_map.items():
                 hasher = hashlib.sha3_384()
                 hasher.update(
-                    bytes(os.path.basename(filename), encoding='utf-8'))
+                    open(os.path.basename(filename), 'rb').read())
                 snap_hashes[hash_type] = hasher.hexdigest()
-
             snap_filename = delta_filename  # upload delta instead
 
     with _requires_login():
@@ -440,6 +439,7 @@ def push(snap_filename, release_channels=None):
             result['revision'], snap_name))
     else:
         logger.info('Uploaded {!r}'.format(snap_name))
+
     tracker.raise_for_code()
 
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):

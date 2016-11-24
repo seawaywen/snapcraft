@@ -488,6 +488,8 @@ class SCAClient(Client):
             headers={'Authorization': auth,
                      'Content-Type': 'application/json',
                      'Accept': 'application/json'})
+        import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
+
         if not response.ok:
             raise errors.StorePushError(data['name'], response)
 
@@ -656,6 +658,7 @@ class StatusTracker:
         'being_processed': 'Processing...',
         'ready_to_release': 'Ready to release!',
         'need_manual_review': 'Will need manual review...',
+        'processing_delta_application_error': 'Error while processing delta...',
         'processing_error': 'Error while processing...',
     }
 
