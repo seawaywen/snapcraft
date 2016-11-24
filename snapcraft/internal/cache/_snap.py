@@ -16,8 +16,8 @@
 
 import logging
 import os
+import shutil
 
-from snapcraft.file_utils import link_or_copy
 from ._cache import SnapcraftProjectCache
 
 
@@ -45,7 +45,7 @@ class SnapCache(SnapcraftProjectCache):
             revision)
         cached_snap_path = os.path.join(self.snap_cache_dir, cached_snap)
         try:
-            link_or_copy(snap_filename, cached_snap_path)
+            shutil.copy2(snap_filename, cached_snap_path)
         except OSError:
             logger.warning(
                 'Unable to cache snap {}.'.format(cached_snap))

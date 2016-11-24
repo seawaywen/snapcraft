@@ -413,16 +413,15 @@ def push(snap_filename, release_channels=None):
                 source_path=source_snap, target_path=cached_snap)
             delta_filename = xdelta_generator.make_delta()
             logger.info('Delta generated: {}'.format(delta_filename))
-            hash_map = {'source_hash': cached_snap,
-                        'target_hash': snap_filename,
-                        'delta_hash': delta_filename}
-            for hash_type, filename in hash_map.items():
+            file_hash_map = {'source_hash': cached_snap,
+                             'target_hash': snap_filename,
+                             'delta_hash': delta_filename}
+            for hash_type, filename in file_hash_map.items():
                 hasher = hashlib.sha3_384()
-                hasher.update(
-                    open(os.path.basename(filename), 'rb').read())
+                hasher.update(open(filename, 'rb').read())
                 snap_hashes[hash_type] = hasher.hexdigest()
             snap_filename = delta_filename  # upload delta instead
-
+    #import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
     with _requires_login():
         tracker = store.upload(
             snap_name,
