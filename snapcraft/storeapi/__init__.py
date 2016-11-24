@@ -488,8 +488,6 @@ class SCAClient(Client):
             headers={'Authorization': auth,
                      'Content-Type': 'application/json',
                      'Accept': 'application/json'})
-        import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
-
         if not response.ok:
             raise errors.StorePushError(data['name'], response)
 
