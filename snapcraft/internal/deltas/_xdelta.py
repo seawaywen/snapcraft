@@ -45,6 +45,11 @@ class XDeltaGenerator(BaseDeltasGenerator):
             delta_file
         ]
 
+    def is_returncode_unexpected(self, proc):
+        # Success is exiting with 0 or 1. Yes, really. I know.
+        # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=212189
+        return proc.returncode not in (0, 1)
+
     def log_delta_file(self, delta_file):
         xdelta_output = subprocess.check_output(
             [self.delta_tool_path, 'info', delta_file],

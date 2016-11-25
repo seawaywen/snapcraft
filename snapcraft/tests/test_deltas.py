@@ -61,7 +61,6 @@ class BaseDeltaGenerationTestCase(TestCase):
         )
 
     def test_not_set_delta_property_correctly(self):
-
         self.assertThat(
             lambda: deltas.BaseDeltasGenerator(
                 source_path=self.source_file, target_path=self.target_file,
@@ -134,7 +133,6 @@ for now delta_format='invalid-delta-format'"""
         )
 
     def test_subclass_not_implement_get_delta_cmd(self):
-
         tmp_delta = deltas.BaseDeltasGenerator(
             source_path=self.source_file,
             target_path=self.target_file,
@@ -142,6 +140,6 @@ for now delta_format='invalid-delta-format'"""
             delta_tool_path='/usr/bin/xdelta')
 
         self.assertThat(
-            lambda: tmp_delta.make_delta(),
+            lambda: tmp_delta.make_delta(is_for_test=True),
             m.raises(NotImplementedError)
         )

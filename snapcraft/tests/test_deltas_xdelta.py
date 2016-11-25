@@ -101,7 +101,7 @@ class XDeltaTestCase(TestCase):
         self.generate_snap_pair()
         base_delta = deltas.XDeltaGenerator(
             source_path=self.source_file, target_path=self.target_file)
-        path = base_delta.make_delta()
+        path = base_delta.make_delta(is_for_test=True)
 
         self.assertThat(path, m.FileExists())
         expect_path = '{}.{}'.format(base_delta.target_path,
@@ -121,7 +121,8 @@ class XDeltaTestCase(TestCase):
         progress_indicator.start()
 
         path = base_delta.make_delta(
-            progress_indicator=progress_indicator)
+            progress_indicator=progress_indicator,
+            is_for_test=True)
         progress_indicator.finish()
 
         self.assertThat(path, m.FileExists())
@@ -138,7 +139,7 @@ class XDeltaTestCase(TestCase):
             base_delta.delta_file_extname)
 
         existed_output_dir = self.useFixture(fixtures.TempDir()).path
-        path = base_delta.make_delta(existed_output_dir)
+        path = base_delta.make_delta(existed_output_dir, is_for_test=True)
 
         expect_path = os.path.join(existed_output_dir, delta_filename)
         self.assertThat(path, m.FileExists())
@@ -146,7 +147,7 @@ class XDeltaTestCase(TestCase):
 
         none_existed_output_dir = self.useFixture(
             fixtures.TempDir()).path + '/whatever/'
-        path = base_delta.make_delta(none_existed_output_dir)
+        path = base_delta.make_delta(none_existed_output_dir, is_for_test=True)
 
         expect_path = os.path.join(none_existed_output_dir, delta_filename)
         self.assertThat(path, m.FileExists())
@@ -156,7 +157,7 @@ class XDeltaTestCase(TestCase):
         self.generate_snap_pair()
         base_delta = deltas.XDeltaGenerator(
             source_path=self.source_file, target_path=self.target_file)
-        base_delta.make_delta()
+        base_delta.make_delta(is_for_test=True)
 
         self.assertThat(
             self.fake_logger.output,
@@ -180,6 +181,6 @@ class XDeltaTestCase(TestCase):
         base_delta = deltas.XDeltaGenerator(
             source_path=self.source_file, target_path=self.target_file)
         self.assertThat(
-            lambda: base_delta.make_delta(),
+            lambda: base_delta.make_delta(is_for_test=True),
             m.raises(deltas.errors.DeltaGenerationError)
         )

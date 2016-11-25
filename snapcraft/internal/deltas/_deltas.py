@@ -20,8 +20,6 @@ import os
 import subprocess
 import time
 
-from progressbar import ProgressBar
-
 from snapcraft import file_utils
 from snapcraft.internal.deltas.errors import (
     DeltaFormatError,
@@ -34,7 +32,7 @@ from snapcraft.internal.deltas.errors import (
 logger = logging.getLogger(__name__)
 
 
-delta_formats_options = [
+delta_format_options = [
     'xdelta'
 ]
 
@@ -65,19 +63,21 @@ class BaseDeltasGenerator:
             raise DeltaFormatError()
         if not self.delta_tool_path:
             raise DeltaToolError()
-        if self.delta_format not in delta_formats_options:
+        if self.delta_format not in delta_format_options:
             raise DeltaFormatOptionError(
                 delta_format=self.delta_format,
-                format_options_list=delta_formats_options)
+                format_options_list=delta_format_options)
 
     def _check_file_existence(self):
         if not os.path.exists(self.source_path):
             raise ValueError(
-                'source file {!r} not exist'.format(self.source_path))
+                'source file {!r} does not exist, '
+                'please specify a valid source file'.format(self.source_path))
 
         if not os.path.exists(self.target_path):
             raise ValueError(
-                'target file {!r} not exist'.format(self.target_path))
+                'target file {!r} does not exist, '
+                'please specify a valid target file'.format(self.target_path))
 
     def _check_delta_gen_tool(self):
         """Check if the delta generation tool exists"""
@@ -90,7 +90,6 @@ class BaseDeltasGenerator:
         This function can be used to ensure that 'path_hint' points to a file
         on disk that does not exist. The returned filename may be a modified
         version of 'path_hint' if 'path_hint' already exists.
-
         """
         target = path_hint
         counter = 0
@@ -99,22 +98,23 @@ class BaseDeltasGenerator:
             counter += 1
         return target
 
-    def _setup_std_output(self, source_path):
-        """helper to setup the stdout and stderr for subprocess"""
-        workdir = os.path.dirname(source_path)
+    def _setup_std_output(self, delta_file):
+        """Helper to setup the stdout and stderr for subprocess"""
+        workdir = '/tmp/'
+        _, delta_name = os.path.split(delta_file)
 
         stdout_path = self.find_unique_file_name(
-            os.path.join(workdir, '{}-out'.format(self.delta_format)))
+            os.path.join(workdir, '{}.out'.format(delta_name)))
         stdout_file = open(stdout_path, 'wb')
 
         stderr_path = self.find_unique_file_name(
-            os.path.join(workdir, '{}-err'.format(self.delta_format)))
+            os.path.join(workdir, '{}.err'.format(delta_name)))
         stderr_file = open(stderr_path, 'wb')
 
         return workdir, stdout_path, stdout_file, stderr_path, stderr_file
 
     def _update_progress_indicator(self, proc, progress_indicator):
-        """update the progress indicator"""
+        """Update the progress indicator"""
         # the caller should start the progressbar outside
         ret = None
         count = 0
@@ -130,8 +130,9 @@ class BaseDeltasGenerator:
         print('')
         # the caller should finish the progressbar outside
 
-    def make_delta(self, output_dir=None, progress_indicator=None):
-        """call the delta generation tool to create the delta file.
+    def make_delta(self, output_dir=None, progress_indicator=None,
+                   is_for_test=False):
+        """Call the delta generation tool to create the delta file.
 
         returns: generated delta file path
         """
@@ -159,7 +160,7 @@ class BaseDeltasGenerator:
                                        delta_file)
 
         workdir, stdout_path, stdout_file, \
-            stderr_path, stderr_file = self._setup_std_output(self.source_path)
+            stderr_path, stderr_file = self._setup_std_output(delta_file)
 
         proc = subprocess.Popen(
             delta_cmd,
@@ -168,8 +169,7 @@ class BaseDeltasGenerator:
             cwd=workdir
         )
 
-        if progress_indicator is not None and isinstance(progress_indicator,
-                                                         ProgressBar):
+        if progress_indicator:
             self._update_progress_indicator(proc, progress_indicator)
         else:
             proc.wait()
@@ -177,26 +177,40 @@ class BaseDeltasGenerator:
         stdout_file.close()
         stderr_file.close()
 
-        # Success is exiting with 0 or 1. Yes, really. I know.
-        # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=212189
-        if proc.returncode not in (0, 1):
+        if self.is_returncode_unexpected(proc):
             _stdout = _stderr = ''
             with open(stdout_path) as f:
                 _stdout = f.read()
             with open(stderr_path) as f:
                 _stderr = f.read()
+
+            # cleanup the testcase std logs
+            if is_for_test:
+                os.remove(stdout_path)
+                os.remove(stderr_path)
+
             raise DeltaGenerationError(
                 'Could not generate {} delta.\n'
+                'stdout log: {}\n'
                 'stdout: \n{}\n'
+                '---------'
+                'stderr log: {}\n'
                 'stderr: \n{}\n'
+                '---------'
                 'returncode: {}'.format(
                     self.delta_format,
-                    _stdout, _stderr,
+                    stdout_path, _stdout,
+                    stderr_path, _stderr,
                     proc.returncode
                 )
             )
 
         self.log_delta_file(delta_file)
+
+        # is used for log file cleanup in unittest
+        if is_for_test:
+            os.remove(stdout_path)
+            os.remove(stderr_path)
 
         return delta_file
 
@@ -204,7 +218,13 @@ class BaseDeltasGenerator:
     # the methods need to be implemented in subclass
     # ------------------------------------------------------
     def get_delta_cmd(self, source_path, target_path, delta_file):
+        """Get the delta generation command line"""
+        raise NotImplementedError
+
+    def is_returncode_unexpected(self, proc):
+        """Check if the subprocess return code is expected"""
         raise NotImplementedError
 
     def log_delta_file(self, delta_file):
+        """Log the delta generation result"""
         pass
