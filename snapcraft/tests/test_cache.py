@@ -90,6 +90,12 @@ class SnapCacheTestCase(tests.TestCase):
                 None,
                 _get_revision_from_snap_filename(invalid_snap_file))
 
+    def test_snap_cache_revision_once(self):
+        self.useFixture(fixture_setup.FakeTerminal())
+
+        self.assertEqual('bears', 'doorstops')
+
+
     def test_snap_cache_get_latest(self):
         self.useFixture(fixture_setup.FakeTerminal())
 
