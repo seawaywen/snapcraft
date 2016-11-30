@@ -21,8 +21,6 @@ from unittest import mock
 
 import fixtures
 
-import fixtures
-
 from snapcraft import file_utils
 from snapcraft import tests
 from snapcraft.internal.errors import (
