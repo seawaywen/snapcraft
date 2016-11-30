@@ -456,8 +456,8 @@ def push(snap_filename, release_channels=None):
                         logger.warning(
                             'Unable to remove delta {}'.format(delta_filename))
 
-            snap_cache.cache(snap_filename, result['revision'])
-            snap_cache.prune(keep_revision=result['revision'])
+        snap_cache.cache(snap_filename, result['revision'])
+        snap_cache.prune(keep_revision=result['revision'])
     else:
         with _requires_login():
             tracker = store.upload(snap_name, snap_filename)
