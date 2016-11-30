@@ -18,6 +18,7 @@ import logging
 import os
 import shutil
 
+from snapcraft.file_utils import calculate_sha3384_hash
 from ._cache import SnapcraftProjectCache
 
 
@@ -29,20 +30,28 @@ class SnapCache(SnapcraftProjectCache):
     def __init__(self, *, project_name):
         super().__init__(project_name=project_name)
         self.snap_cache_dir = self._setup_snap_cache()
+        self.hash_table = {}
 
     def _setup_snap_cache(self):
         snap_cache_path = os.path.join(self.project_cache_root, 'revisions')
         os.makedirs(snap_cache_path, exist_ok=True)
         return snap_cache_path
 
-    def cache(self, snap_filename, revision):
+    def get_hash(self, snap_filename):
+        if snap_filename not in self.hash_table:
+            file_hash = calculate_sha3384_hash(snap_filename)
+            self.hash_table[snap_filename] = file_hash
+            return str(file_hash)
+        else:
+            return str(self.hash_table[snap_filename])
+
+    def cache(self, snap_filename):
         """Cache snap revision in XDG cache, unless exists.
 
         :returns: path to cached revision.
         """
-        cached_snap = _rewrite_snap_filename_with_revision(
-            snap_filename,
-            revision)
+        file_hash = self.get_hash(snap_filename)
+        cached_snap = _rewrite_snap_filename_with_hash(snap_filename, file_hash)
         cached_snap_path = os.path.join(self.snap_cache_dir, cached_snap)
         try:
             if not os.path.isfile(cached_snap_path):
@@ -52,23 +61,21 @@ class SnapCache(SnapcraftProjectCache):
                 'Unable to cache snap {}.'.format(cached_snap))
         return cached_snap_path
 
-    def prune(self, *, keep_revision):
-        """Prune the snap revisions beside the keep_revision in XDG cache.
+    def prune(self, *, keep_hash):
+        """Prune the snap revisions beside the keep_hash in XDG cache.
 
         :returns: pruned files paths list.
         """
-        keep_revision = int(keep_revision)
-
         pruned_files_list = []
 
         for snap_filename in os.listdir(self.snap_cache_dir):
             cached_snap = os.path.join(self.snap_cache_dir, snap_filename)
 
-            # get the file version from file name
-            rev_from_snap_file = _get_revision_from_snap_filename(
+            # get the file hash from file name
+            hash_from_snap_file = _get_hash_from_snap_filename(
                 snap_filename)
 
-            if rev_from_snap_file != keep_revision:
+            if hash_from_snap_file != keep_hash:
                 try:
                     os.remove(cached_snap)
                     pruned_files_list.append(cached_snap)
@@ -96,6 +103,33 @@ def _rewrite_snap_filename_with_revision(snap_file, revision):
         ext=splitf[1])
     return snap_with_revision
 
+
+def _rewrite_snap_filename_with_hash(snap_file, file_hash):
+    splitf = os.path.splitext(snap_file)
+    snap_name_with_hash = '{base}_{file_hash}{ext}'.format(
+        base=splitf[0],
+        file_hash=file_hash,
+        ext=splitf[1])
+    return snap_name_with_hash
+
+
+def _get_hash_from_snap_filename(snap_filename):
+    """parse the filename to extract the hash info"""
+    # the cached snap filename should have the format:
+    # '{name}_{version}_{arch}_{hash}.snap'
+    filename, extname = os.path.splitext(snap_filename)
+    split_name_parts = filename.split('_')
+    if len(split_name_parts) != 4:
+        logger.debug('The cached snap filename {} is invalid.'.format(
+            snap_filename))
+        return None
+
+    file_hash = split_name_parts[-1]
+    # the sha3_384 hexdigest length should be 96
+    if len(file_hash) != 96:
+        logger.debug('The cached snap filename has an invalid sha3_384 hash.')
+        return None
+    return file_hash
 
 def _get_revision_from_snap_filename(snap_filename):
     """parse the filename to extract the revision info"""

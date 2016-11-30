@@ -411,6 +411,7 @@ def push(snap_filename, release_channels=None):
 
         # generate delta if earlier snap revision cached
         snap_cache = cache.SnapCache(project_name=snap_name)
+        import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
         source_snap = snap_cache.get_latest(snap_name)
         if source_snap:
             logger.info('Successfully got cached source snap {}'.format(
@@ -441,7 +442,6 @@ def push(snap_filename, release_channels=None):
                     'Delta generation failed for source: '
                     '{}, target: {}'.format(source_snap, target_snap))
             except Exception:
-                import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
                 logger.warning(
                     'Error uploading delta, falling back to full snap.')
                 with _requires_login():
@@ -456,8 +456,9 @@ def push(snap_filename, release_channels=None):
                         logger.warning(
                             'Unable to remove delta {}'.format(delta_filename))
 
-            snap_cache.cache(snap_filename, result['revision'])
-            snap_cache.prune(keep_revision=result['revision'])
+        snap_cache.cache(snap_filename)
+        snap_cache_hash = snap_cache.get_hash(snap_filename)
+        snap_cache.prune(keep_hash=snap_cache_hash)
     else:
         with _requires_login():
             tracker = store.upload(snap_name, snap_filename)
