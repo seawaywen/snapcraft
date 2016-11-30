@@ -411,11 +411,8 @@ def push(snap_filename, release_channels=None):
 
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL') and source_snap:
         delta_format = 'xdelta'
-
-        # fallback needs to occur even when this is not set
-
-        logger.info('Successfully got cached source snap {}'.format(
-            source_snap))
+        logger.info('Successfully got cached source snap {}, '
+                    'generating delta.'.format(source_snap))
         target_snap = os.path.join(os.getcwd(), snap_filename)
         try:
             xdelta_generator = deltas.XDeltaGenerator(
@@ -442,7 +439,6 @@ def push(snap_filename, release_channels=None):
                 'Delta generation failed for source: '
                 '{}, target: {}'.format(source_snap, target_snap))
         except Exception:
-            import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
             logger.warning(
                 'Error uploading delta, falling back to full snap.')
             with _requires_login():
