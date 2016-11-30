@@ -667,7 +667,8 @@ class StatusTracker:
         'being_processed': 'Processing...',
         'ready_to_release': 'Ready to release!',
         'need_manual_review': 'Will need manual review...',
-        'processing_delta_application_error': 'Error while processing delta...',
+        'processing_delta_application_error':
+            'Error while processing delta...',
         'processing_error': 'Error while processing...',
     }
 

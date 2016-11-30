@@ -125,7 +125,6 @@ class SnapCacheTestCase(tests.TestCase):
 
         self.assertEqual('bears', 'doorstops')
 
-
     def test_snap_cache_get_latest(self):
         self.useFixture(fixture_setup.FakeTerminal())
 

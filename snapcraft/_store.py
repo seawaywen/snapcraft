@@ -69,7 +69,6 @@ def _get_url_from_error(error):
     return None
 
 
-
 def _check_dev_agreement_and_namespace_statuses(store):
     """ Check the agreement and namespace statuses of the dev.
     Fail if either of those conditions is not met.
