@@ -28,7 +28,7 @@ from snapcraft import (
     storeapi,
     tests
 )
-from snapcraft.internal.cache._snap import _rewrite_snap_filename_with_revision
+from snapcraft.internal.cache._snap import _rewrite_snap_filename_with_hash
 from snapcraft.main import main
 from snapcraft.storeapi.errors import StoreUploadError
 from snapcraft.tests import fixture_setup
@@ -306,9 +306,7 @@ class PushCommandDeltasTestCase(tests.TestCase):
             'snapcraft',
             'my-snap-name',
             'revisions')
-        cached_snap = _rewrite_snap_filename_with_revision(
-            snap_file,
-            self.new_snap_revision)
+        cached_snap = _rewrite_snap_filename_with_hash(snap_file)
 
         self.assertEqual(self.enable_deltas, os.path.isfile(
             os.path.join(revision_cache, cached_snap)))
@@ -358,12 +356,10 @@ class PushCommandDeltasWithPruneTestCase(tests.TestCase):
         })
     ]
 
-    def test_push_revision_prune_snap_cache(self):
-        self.useFixture(fixture_setup.FakeTerminal())
-        self.useFixture(fixture_setup.DeltaUploads())
+    def setUp(self):
+        super().setUp()
 
         snap_revision = 9
-
         patcher = mock.patch.object(storeapi.StoreClient, 'get_snap_history')
         mock_release = patcher.start()
         self.addCleanup(patcher.stop)
@@ -383,6 +379,14 @@ class PushCommandDeltasWithPruneTestCase(tests.TestCase):
         self.addCleanup(patcher.stop)
         mock_upload.return_value = mock_tracker
 
+
+    def test_push_revision_prune_snap_cache(self):
+        self.useFixture(fixture_setup.FakeTerminal())
+        self.useFixture(fixture_setup.DeltaUploads())
+
+        #snap_revision = 9
+        snap_cache_hash = '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004'
+
         revision_cache = os.path.join(
             BaseDirectory.xdg_cache_home,
             'snapcraft', 'my-snap-name', 'revisions')
@@ -401,10 +405,20 @@ class PushCommandDeltasWithPruneTestCase(tests.TestCase):
         with mock.patch('snapcraft.storeapi.StatusTracker'):
             main(['push', snap_file])
 
-        real_cached_snap = _rewrite_snap_filename_with_revision(
-            snap_file,
-            snap_revision
-        )
+        # create an additional snap
+        main(['snap'])
+        new_snap_file = glob.glob('*.snap')[0]
+
+        # Upload
+        with mock.patch('snapcraft.storeapi.StatusTracker'):
+            main(['push', new_snap_file])
+
+        snap_file_with_full_path = os.path.join(revision_cache, snap_file)
+        import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
+        from snapcraft.file_utils import calculate_sha3384_hash
+        snap_cache_hash = calculate_sha3384_hash(snap_file_with_full_path)
+
+        real_cached_snap = _rewrite_snap_filename_with_hash(snap_file, snap_cache_hash)
         self.assertTrue(
             os.path.isfile(os.path.join(revision_cache, real_cached_snap)))
 
