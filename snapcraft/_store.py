@@ -17,13 +17,11 @@
 from contextlib import contextmanager
 import datetime
 import getpass
-import hashlib
 import json
 import logging
 import os
 import re
 import subprocess
-import sys
 import tempfile
 
 from subprocess import Popen
@@ -69,7 +67,6 @@ def _get_url_from_error(error):
     if error.extra:
         return error.extra[0].get('url')
     return None
-
 
 
 def _check_dev_agreement_and_namespace_statuses(store):

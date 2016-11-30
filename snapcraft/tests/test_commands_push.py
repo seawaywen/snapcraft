@@ -81,9 +81,7 @@ class PushCommandTestCase(tests.TestCase):
             'Revision 9 of \'my-snap-name\' created.',
             self.fake_logger.output)
 
-        mock_upload.assert_called_once_with(
-            'my-snap-name', snap_file, delta_format=None, source_hash=None,
-            target_hash=None, delta_hash=None)
+        mock_upload.assert_called_once_with('my-snap-name', snap_file)
 
     def test_push_without_login_must_raise_exception(self):
         snap_path = os.path.join(
@@ -151,9 +149,7 @@ class PushCommandTestCase(tests.TestCase):
             'Revision 9 of \'my-snap-name\' created.',
             self.fake_logger.output)
 
-        mock_upload.assert_called_once_with(
-            'my-snap-name', snap_file, delta_format=None, source_hash=None,
-            target_hash=None, delta_hash=None)
+        mock_upload.assert_called_once_with('my-snap-name', snap_file)
 
     def test_push_and_release_a_snap(self):
         self.useFixture(fixture_setup.FakeTerminal())
@@ -199,9 +195,7 @@ class PushCommandTestCase(tests.TestCase):
             'Revision 9 of \'my-snap-name\' created.',
             self.fake_logger.output)
 
-        mock_upload.assert_called_once_with(
-            'my-snap-name', snap_file, delta_format=None, source_hash=None,
-            target_hash=None, delta_hash=None)
+        mock_upload.assert_called_once_with('my-snap-name', snap_file)
         mock_release.assert_called_once_with('my-snap-name', 9, ['beta'])
 
     def test_push_and_release_a_snap_to_N_channels(self):
@@ -250,9 +244,7 @@ class PushCommandTestCase(tests.TestCase):
             'Revision 9 of \'my-snap-name\' created.',
             self.fake_logger.output)
 
-        mock_upload.assert_called_once_with(
-            'my-snap-name', snap_file, delta_format=None, source_hash=None,
-            target_hash=None, delta_hash=None)
+        mock_upload.assert_called_once_with('my-snap-name', snap_file)
         mock_release.assert_called_once_with('my-snap-name', 9,
                                              ['edge', 'beta', 'candidate'])
 
@@ -337,9 +329,9 @@ class PushCommandDeltasTestCase(tests.TestCase):
 
         _, kwargs = self.mock_upload.call_args
         if self.enable_deltas:
-            self.assertEqual(kwargs['delta_format'], 'xdelta')
+            self.assertEqual(kwargs.get('delta_format'), 'xdelta')
         else:
-            self.assertIsNone(kwargs['delta_format'])
+            self.assertIsNone(kwargs.get('delta_format'))
 
 
 class PushCommandDeltasWithPruneTestCase(tests.TestCase):
