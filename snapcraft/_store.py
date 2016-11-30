@@ -400,47 +400,10 @@ def push(snap_filename, release_channels=None):
 
     snap_cache = cache.SnapCache(project_name=snap_name)
     source_snap = snap_cache.get_latest(snap_name)
-    delta_uploaded = False
 
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL') and source_snap:
-        delta_format = 'xdelta'
-        logger.info('Successfully got cached source snap {}, '
-                    'generating delta.'.format(source_snap))
-        target_snap = os.path.join(os.getcwd(), snap_filename)
-        try:
-            xdelta_generator = deltas.XDeltaGenerator(
-                source_path=source_snap, target_path=target_snap)
-            delta_filename = xdelta_generator.make_delta()
-            logger.info('Delta generated: {}'.format(delta_filename))
-
-            snap_hashes = {'source_hash': calculate_sha3_384(source_snap),
-                           'target_hash': calculate_sha3_384(target_snap),
-                           'delta_hash': calculate_sha3_384(delta_filename)}
-
-            result = _upload_delta(
-                snap_name,
-                delta_filename,
-                delta_format,
-                snap_hashes['source_hash'],
-                snap_hashes['target_hash'],
-                snap_hashes['delta_hash'])
-            delta_uploaded = True
-        except DeltaGenerationError:
-            logger.warning(
-                'Delta generation failed for source: '
-                '{}, target: {}'.format(source_snap, target_snap))
-        except storeapi.errors.StoreReviewError:
-            logger.warning(
-                'Error uploading delta, falling back to full snap.')
-        finally:
-            if os.path.isfile(delta_filename):
-                try:
-                    os.remove(delta_filename)
-                except OSError:
-                    logger.warning(
-                        'Unable to remove delta {}'.format(delta_filename))
-
-    if not delta_uploaded or not os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
+        result = _upload_delta(snap_name, snap_filename, source_snap)
+    else:
         result = _upload(snap_name, snap_filename)
 
     # This is workaround until LP: #1599875 is solved
@@ -467,19 +430,51 @@ def _upload(snap_name, snap_filename):
     return result
 
 
-def _upload_delta(snap_name, delta_filename, delta_format,
-                  source_hash, target_hash, delta_hash):
+def _upload_delta(snap_name, snap_filename, source_snap):
     store = storeapi.StoreClient()
-    with _requires_login():
-        delta_tracker = store.upload(
-            snap_name,
-            delta_filename,
-            delta_format=delta_format,
-            source_hash=source_hash,
-            target_hash=target_hash,
-            delta_hash=delta_hash)
-    result = delta_tracker.track()
-    delta_tracker.raise_for_code()
+    delta_format = 'xdelta'
+    logger.info('Successfully got cached source snap {}, '
+                'generating delta.'.format(source_snap))
+    target_snap = os.path.join(os.getcwd(), snap_filename)
+
+    try:
+        xdelta_generator = deltas.XDeltaGenerator(
+            source_path=source_snap, target_path=target_snap)
+        delta_filename = xdelta_generator.make_delta()
+        logger.info('Delta generated: {}'.format(delta_filename))
+    except DeltaGenerationError:
+        logger.warning(
+            'Delta generation failed for source: '
+            '{}, target: {}, falling back to full snap.'.format(
+                source_snap, target_snap))
+        return _upload(snap_name, snap_filename)
+
+    snap_hashes = {'source_hash': calculate_sha3_384(source_snap),
+                   'target_hash': calculate_sha3_384(target_snap),
+                   'delta_hash': calculate_sha3_384(delta_filename)}
+
+    try:
+        with _requires_login():
+            delta_tracker = store.upload(
+                snap_name,
+                delta_filename,
+                delta_format=delta_format,
+                source_hash=snap_hashes['source_hash'],
+                target_hash=snap_hashes['target_hash'],
+                delta_hash=snap_hashes['delta_hash'])
+        result = delta_tracker.track()
+        delta_tracker.raise_for_code()
+    except storeapi.errors.StoreReviewError:
+        logger.warning(
+            'Error uploading delta, falling back to full snap.')
+        return _upload(snap_name, snap_filename)
+    finally:
+        if os.path.isfile(delta_filename):
+            try:
+                os.remove(delta_filename)
+            except OSError:
+                logger.warning(
+                    'Unable to remove delta {}'.format(delta_filename))
     return result
 
 
