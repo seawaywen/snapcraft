@@ -31,6 +31,7 @@ from subprocess import Popen
 from tabulate import tabulate
 import yaml
 
+from snapcraft.file_utils import calculate_sha3_384
 from snapcraft import storeapi
 from snapcraft.internal import (
     cache,
@@ -38,9 +39,6 @@ from snapcraft.internal import (
     repo,
 )
 from snapcraft.internal.deltas.errors import DeltaGenerationError
-
-if sys.version_info < (3, 6):
-    import sha3  # noqa
 
 
 logger = logging.getLogger(__name__)
@@ -58,12 +56,6 @@ def _get_data_from_snap_file(snap_path):
         ) as yaml_file:
             snap_yaml = yaml.load(yaml_file)
     return snap_yaml
-
-
-def _get_sha3_384(snap_path):
-    hasher = hashlib.sha3_384()
-    hasher.update(open(snap_path, 'rb').read())
-    return hasher.hexdigest()
 
 
 def _fail_login(msg=''):
@@ -420,9 +412,9 @@ def push(snap_filename, release_channels=None):
             delta_filename = xdelta_generator.make_delta()
             logger.info('Delta generated: {}'.format(delta_filename))
 
-            snap_hashes = {'source_hash': _get_sha3_384(source_snap),
-                           'target_hash': _get_sha3_384(target_snap),
-                           'delta_hash': _get_sha3_384(delta_filename)}
+            snap_hashes = {'source_hash': calculate_sha3_384(source_snap),
+                           'target_hash': calculate_sha3_384(target_snap),
+                           'delta_hash': calculate_sha3_384(delta_filename)}
 
             with _requires_login():
                 delta_tracker = store.upload(
@@ -438,7 +430,8 @@ def push(snap_filename, release_channels=None):
             logger.warning(
                 'Delta generation failed for source: '
                 '{}, target: {}'.format(source_snap, target_snap))
-        except Exception:
+        except Exception as ex:
+            logger.error(ex)
             logger.warning(
                 'Error uploading delta, falling back to full snap.')
             with _requires_login():
