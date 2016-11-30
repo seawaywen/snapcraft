@@ -16,11 +16,12 @@
 
 from contextlib import contextmanager
 import hashlib
+import logging
 import os
 import shutil
-import sys
 import subprocess
-import logging
+import sys
+
 
 from snapcraft.internal.errors import (
     RequiredCommandFailure,
@@ -203,15 +204,18 @@ def requires_path_exists(path, error_fmt=None):
         raise RequiredPathDoesNotExist(**kwargs)
     yield
 
-def calculate_sha3384_hash(file_path):
+
+def calculate_sha3_384(path):
+    """Calculate sha3 384 hash, reading the file in 1MB chunks."""
     blocksize = 2**20
-    with open(file_path, 'rb') as snap_file:
+    with open(path, 'rb') as snap_file:
         hasher = hashlib.sha3_384()
         while True:
             buf = snap_file.read(blocksize)
             if not buf:
                 break
             hasher.update(buf)
+
         _hash = hasher.hexdigest()
         if type(_hash) == bytes:
             return _hash.decode()

@@ -18,7 +18,7 @@ import logging
 import os
 import shutil
 
-from snapcraft.file_utils import calculate_sha3384_hash
+from snapcraft.file_utils import calculate_sha3_384
 from ._cache import SnapcraftProjectCache
 
 
@@ -39,7 +39,7 @@ class SnapCache(SnapcraftProjectCache):
 
     def get_hash(self, snap_filename):
         if snap_filename not in self.hash_table:
-            file_hash = calculate_sha3384_hash(snap_filename)
+            file_hash = calculate_sha3_384(snap_filename)
             self.hash_table[snap_filename] = file_hash
             return str(file_hash)
         else:

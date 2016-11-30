@@ -409,14 +409,15 @@ class PushCommandDeltasWithPruneTestCase(tests.TestCase):
         main(['snap'])
         new_snap_file = glob.glob('*.snap')[0]
 
+        #import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
+        snap_file_with_full_path = os.path.join(os.getcwd(), snap_file)
+        from snapcraft.file_utils import calculate_sha3_384
+        snap_cache_hash = calculate_sha3_384(snap_file_with_full_path)
+
         # Upload
         with mock.patch('snapcraft.storeapi.StatusTracker'):
             main(['push', new_snap_file])
 
-        snap_file_with_full_path = os.path.join(revision_cache, snap_file)
-        import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
-        from snapcraft.file_utils import calculate_sha3384_hash
-        snap_cache_hash = calculate_sha3384_hash(snap_file_with_full_path)
 
         real_cached_snap = _rewrite_snap_filename_with_hash(snap_file, snap_cache_hash)
         self.assertTrue(
