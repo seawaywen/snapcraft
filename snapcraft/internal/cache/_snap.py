@@ -51,7 +51,8 @@ class SnapCache(SnapcraftProjectCache):
         :returns: path to cached revision.
         """
         file_hash = self.get_hash(snap_filename)
-        cached_snap = _rewrite_snap_filename_with_hash(snap_filename, file_hash)
+        cached_snap = _rewrite_snap_filename_with_hash(
+            snap_filename, file_hash)
         cached_snap_path = os.path.join(self.snap_cache_dir, cached_snap)
         try:
             if not os.path.isfile(cached_snap_path):
@@ -95,15 +96,6 @@ class SnapCache(SnapcraftProjectCache):
         return max(cached_snaps, key=os.path.getctime)
 
 
-def _rewrite_snap_filename_with_revision(snap_file, revision):
-    splitf = os.path.splitext(snap_file)
-    snap_with_revision = '{base}_{rev}{ext}'.format(
-        base=splitf[0],
-        rev=revision,
-        ext=splitf[1])
-    return snap_with_revision
-
-
 def _rewrite_snap_filename_with_hash(snap_file, file_hash):
     splitf = os.path.splitext(snap_file)
     snap_name_with_hash = '{base}_{file_hash}{ext}'.format(
@@ -130,21 +122,3 @@ def _get_hash_from_snap_filename(snap_filename):
         logger.debug('The cached snap filename has an invalid sha3_384 hash.')
         return None
     return file_hash
-
-def _get_revision_from_snap_filename(snap_filename):
-    """parse the filename to extract the revision info"""
-    # the cached snap filename should have the format:
-    # '{name}_{version}_{arch}_{revision}.snap'
-    filename, extname = os.path.splitext(snap_filename)
-    split_name_parts = filename.split('_')
-    if len(split_name_parts) != 4:
-        logger.debug('The cached snap filename {} is invalid.'.format(
-            snap_filename))
-        return None
-
-    try:
-        rev = int(split_name_parts[-1])
-    except ValueError:
-        logger.debug('The cached snap filename has an invalid revision.')
-        return None
-    return rev

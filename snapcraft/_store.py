@@ -404,14 +404,11 @@ def push(snap_filename, release_channels=None):
         result = _upload(snap_name, snap_filename)
 
     # This is workaround until LP: #1599875 is solved
-    #import sys;import pdb;pdb.Pdb(stdout=sys.__stdout__).set_trace()
     if 'revision' in result:
         logger.info('Revision {!r} of {!r} created.'.format(
             result['revision'], snap_name))\
 
         if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
-            #snap_cache.cache(snap_filename, result['revision'])
-            #snap_cache.prune(keep_revision=result['revision'])
             snap_cache.cache(snap_filename)
             snap_cache_hash = snap_cache.get_hash(snap_filename)
             snap_cache.prune(keep_hash=snap_cache_hash)

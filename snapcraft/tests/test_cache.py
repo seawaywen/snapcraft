@@ -73,14 +73,16 @@ class SnapCacheTestCase(tests.TestCase):
 
         # create dummy snap
         open(os.path.join(self.path, snap_file), 'a').close()
-        snap_cache_hash = '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004'
+        snap_cache_hash = '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004'  # noqa
 
         # cache snap
         cached_snap_path = snap_cache.cache(snap_file)
 
         _, expected_snap = os.path.split(cached_snap_path)
 
-        self.assertEqual('my-snap-name_0.1_amd64_{}.snap'.format(snap_cache_hash), expected_snap)
+        self.assertEqual(
+            'my-snap-name_0.1_amd64_{}.snap'.format(snap_cache_hash),
+            expected_snap)
         self.assertTrue(os.path.isfile(cached_snap_path))
 
     def test_get_revision_from_snap_filename(self):
@@ -102,8 +104,7 @@ class SnapCacheTestCase(tests.TestCase):
                 _get_revision_from_snap_filename(invalid_snap_file))
 
     def test_get_hash_from_snap_filename(self):
-        revision = '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee98'\
-                    '3a2ac3713831264adb47fb6bd1e058d5f004'
+        revision = '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004'  # noqa
         valid_snap_file = 'my-snap_0.1_amd64_{}.snap'.format(revision)
 
         self.assertEqual(
@@ -133,14 +134,14 @@ class SnapCacheTestCase(tests.TestCase):
         snap_cache = cache.SnapCache(project_name='my-snap-name')
 
         # create dummy cached snaps
-
         open(os.path.join(self.path, snap_file), 'a').close()
-        #for rev in revisions:
         snap_cache.cache(snap_file)
         latest_snap = snap_cache.get_latest(snap_name)
-        snap_cache_hash = '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004'
+
+        snap_cache_hash = '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004'  # noqa
         expected_snap = os.path.join(
-            snap_cache.snap_cache_dir, 'my-snap-name_0.1_amd64_{}.snap'.format(snap_cache_hash))
+            snap_cache.snap_cache_dir,
+            'my-snap-name_0.1_amd64_{}.snap'.format(snap_cache_hash))
 
         self.assertEqual(expected_snap, latest_snap)
 
@@ -161,7 +162,7 @@ class SnapCachedFilePruneTestCase(tests.TestCase):
 
         # create dummy snap
         open(os.path.join(self.path, snap_file), 'a').close()
-        snap_cache_hash = '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004'
+        snap_cache_hash = '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004'  # noqa
 
         # cache snap
         snap_cache.cache(snap_file)
@@ -177,7 +178,8 @@ class SnapCachedFilePruneTestCase(tests.TestCase):
             to_be_deleted_files.append(cached_snap_path)
             open(cached_snap_path, 'a').close()
 
-        real_cached_snap = _rewrite_snap_filename_with_hash(snap_file, snap_cache_hash)
+        real_cached_snap = _rewrite_snap_filename_with_hash(
+            snap_file, snap_cache_hash)
 
         # confirm expected snap cached
         self.assertEqual(3, len(os.listdir(snap_cache.snap_cache_dir)))
