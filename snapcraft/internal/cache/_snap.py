@@ -37,20 +37,12 @@ class SnapCache(SnapcraftProjectCache):
         os.makedirs(snap_cache_path, exist_ok=True)
         return snap_cache_path
 
-    def get_hash(self, snap_filename):
-        if snap_filename not in self.hash_table:
-            file_hash = calculate_sha3_384(snap_filename)
-            self.hash_table[snap_filename] = file_hash
-            return str(file_hash)
-        else:
-            return str(self.hash_table[snap_filename])
-
     def cache(self, snap_filename):
         """Cache snap revision in XDG cache, unless exists.
 
         :returns: path to cached revision.
         """
-        file_hash = self.get_hash(snap_filename)
+        file_hash = calculate_sha3_384(snap_filename)
         cached_snap = _rewrite_snap_filename_with_hash(
             snap_filename, file_hash)
         cached_snap_path = os.path.join(self.snap_cache_dir, cached_snap)
@@ -60,6 +52,10 @@ class SnapCache(SnapcraftProjectCache):
         except OSError:
             logger.warning(
                 'Unable to cache snap {}.'.format(cached_snap))
+
+        cached_snap_hash = calculate_sha3_384(cached_snap_path)
+        if file_hash != cached_snap_hash:
+            raise ValueError('source hash and target hash are not same!')
         return cached_snap_path
 
     def prune(self, *, keep_hash):

@@ -20,11 +20,10 @@ import os
 import fixtures
 
 from snapcraft import tests
+from snapcraft.file_utils import calculate_sha3_384
 from snapcraft.internal import cache
 from snapcraft.internal.cache._snap import (
-    _rewrite_snap_filename_with_revision,
     _rewrite_snap_filename_with_hash,
-    _get_revision_from_snap_filename,
     _get_hash_from_snap_filename
 )
 from snapcraft.tests import fixture_setup
@@ -49,14 +48,6 @@ class SnapCacheTestCase(tests.TestCase):
         super().make_snapcraft_yaml(yaml_content)
         self.fake_logger = fixtures.FakeLogger(level=logging.INFO)
         self.useFixture(self.fake_logger)
-
-    def test_rewrite_snap_filename(self):
-        revision = 10
-        snap_file = 'my-snap-name_0.1_amd64.snap'
-
-        self.assertEqual(
-            'my-snap-name_0.1_amd64_10.snap',
-            _rewrite_snap_filename_with_revision(snap_file, revision))
 
     def test_rewrite_snap_filename_with_hash(self):
         file_hash = 'sdfjlajl34'
@@ -85,24 +76,6 @@ class SnapCacheTestCase(tests.TestCase):
             expected_snap)
         self.assertTrue(os.path.isfile(cached_snap_path))
 
-    def test_get_revision_from_snap_filename(self):
-        revision = 10
-        valid_snap_file = 'my-snap_0.1_amd64_{}.snap'.format(revision)
-
-        self.assertEqual(
-            revision,
-            _get_revision_from_snap_filename(valid_snap_file))
-
-        invalid_snap_list = [
-            'cached-snap-without-revision_1.0_arm64.snap',
-            'another-cached-snap-without-version_arm64.snap',
-            'a-snap-with-no-number-revision_1.0_arm64_xx.snap'
-        ]
-        for invalid_snap_file in invalid_snap_list:
-            self.assertEqual(
-                None,
-                _get_revision_from_snap_filename(invalid_snap_file))
-
     def test_get_hash_from_snap_filename(self):
         revision = '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004'  # noqa
         valid_snap_file = 'my-snap_0.1_amd64_{}.snap'.format(revision)
@@ -119,12 +92,29 @@ class SnapCacheTestCase(tests.TestCase):
         for invalid_snap_file in invalid_snap_list:
             self.assertEqual(
                 None,
-                _get_revision_from_snap_filename(invalid_snap_file))
+                _get_hash_from_snap_filename(invalid_snap_file))
 
-    def test_snap_cache_revision_once(self):
+    def test_file_hash_mismatched_if_snap_cached_file_changed(self):
         self.useFixture(fixture_setup.FakeTerminal())
 
-        self.assertEqual('bears', 'doorstops')
+        snap_name = 'my-snap-name'
+        snap_file = 'my-snap-name_0.1_amd64.snap'
+
+        snap_cache = cache.SnapCache(project_name=snap_name)
+
+        # create dummy cached snaps
+        with open(os.path.join(self.path, snap_file), 'a') as f:
+            f.write('dummy content')
+        cached_snap_file = snap_cache.cache(snap_file)
+
+        snap_hash = calculate_sha3_384(snap_file)
+        cached_file_hash = calculate_sha3_384(cached_snap_file)
+        self.assertEqual(snap_hash, cached_file_hash)
+
+        with open(cached_snap_file, 'a') as f:
+            f.write('some more content')
+        cached_file_hash = calculate_sha3_384(cached_snap_file)
+        self.assertNotEqual(snap_hash, cached_file_hash)
 
     def test_snap_cache_get_latest(self):
         self.useFixture(fixture_setup.FakeTerminal())

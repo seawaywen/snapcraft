@@ -414,8 +414,9 @@ def push(snap_filename, release_channels=None):
             result['revision'], snap_name))\
 
         if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
-            snap_cache.cache(snap_filename, result['revision'])
-            snap_cache.prune(keep_revision=result['revision'])
+            snap_cache.cache(snap_filename)
+            keep_hash = calculate_sha3_384(snap_filename)
+            snap_cache.prune(keep_hash=keep_hash)
     else:
         logger.info('Uploaded {!r}'.format(snap_name))
 
