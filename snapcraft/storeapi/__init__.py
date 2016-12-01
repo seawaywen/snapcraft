@@ -674,6 +674,7 @@ class StatusTracker:
 
     __error_codes = (
         'processing_error',
+        'processing_delta_application_error',
         'need_manual_review',
     )
 

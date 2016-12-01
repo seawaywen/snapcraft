@@ -14,8 +14,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from snapcraft import BasePlugin
 
 
-from . import errors # noqa
-from ._deltas import BaseDeltasGenerator # noqa
-from ._xdelta3 import XDelta3Generator # noqa
+class LocalPlugin(BasePlugin):
+    @classmethod
+    def schema(cls):
+        schema = super().schema()
+
+        schema['properties']['foo'] = {
+            'type': 'string',
+        }
+
+        return schema
+
+    @classmethod
+    def get_build_properties(cls):
+        return ['foo', 'stage-packages']

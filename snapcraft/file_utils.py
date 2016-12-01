@@ -32,6 +32,7 @@ from snapcraft.internal.errors import (
 if sys.version_info < (3, 6):
     import sha3  # noqa
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -184,11 +185,11 @@ def requires_command_success(command, not_found_fmt=None, failure_fmt=None):
     try:
         subprocess.check_call(
             cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except FileNotFoundError as err:
+    except FileNotFoundError:
         if not_found_fmt is not None:
             kwargs['fmt'] = not_found_fmt
         raise RequiredCommandNotFound(**kwargs)
-    except subprocess.CalledProcessError as err:
+    except subprocess.CalledProcessError:
         if failure_fmt is not None:
             kwargs['fmt'] = failure_fmt
         raise RequiredCommandFailure(**kwargs)
@@ -220,3 +221,4 @@ def calculate_sha3_384(path):
         if type(_hash) == bytes:
             return _hash.decode()
         return _hash
+        #return hasher.hexdigest()

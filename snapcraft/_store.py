@@ -31,7 +31,7 @@ import yaml
 
 from snapcraft.file_utils import calculate_sha3_384
 from snapcraft import storeapi
-
+from snapcraft.storeapi.errors import StoreDeltaApplicationError
 from snapcraft.internal import (
     cache,
     deltas,
@@ -379,9 +379,11 @@ def sign_build(snap_filename, key_name=None, local=False):
 def push(snap_filename, release_channels=None):
     """Push a snap_filename to the store.
 
-    If the DELTA_UPLOADS_EXPERIMENTAL envvar is set and a cached snap for the
-    latest revision is available, a delta will be generated against the snap
-    and uploaded instead.
+    If the DELTA_UPLOADS_EXPERIMENTAL environment variable is set
+    and a cached snap is available, a delta will be generated from
+    the cached snap to the new target snap and uploaded instead. In the
+    case of a delta processing or upload failure, push will fall back to
+    uploading the full snap.
 
     If release_channels is defined it also releases it to those channels if the
     store deems the uploaded snap as ready to release.
@@ -390,8 +392,6 @@ def push(snap_filename, release_channels=None):
         raise FileNotFoundError(
             'The file {!r} does not exist.'.format(snap_filename))
 
-    logger.info('Uploading {}.'.format(snap_filename))
-
     snap_yaml = _get_data_from_snap_file(snap_filename)
     snap_name = snap_yaml['name']
 
@@ -399,19 +399,23 @@ def push(snap_filename, release_channels=None):
     source_snap = snap_cache.get_latest(snap_name)
 
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL') and source_snap:
-        result = _upload_delta(snap_name, snap_filename, source_snap)
+        try:
+            result = _upload_delta(snap_name, snap_filename, source_snap)
+        except StoreDeltaApplicationError:
+            logger.warning('Unable to upload delta, '
+                           'falling back to uploading full snap.')
+            result = _upload_snap(snap_name, snap_filename)
     else:
-        result = _upload(snap_name, snap_filename)
+        result = _upload_snap(snap_name, snap_filename)
 
     # This is workaround until LP: #1599875 is solved
     if 'revision' in result:
-        logger.info('Revision {!r} of {!r} created.'.format(
+        logger.info('Revision {!r} of {!r} created'.format(
             result['revision'], snap_name))\
 
         if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL'):
-            snap_cache.cache(snap_filename)
-            snap_cache_hash = snap_cache.get_hash(snap_filename)
-            snap_cache.prune(keep_hash=snap_cache_hash)
+            snap_cache.cache(snap_filename, result['revision'])
+            snap_cache.prune(keep_revision=result['revision'])
     else:
         logger.info('Uploaded {!r}'.format(snap_name))
 
@@ -419,8 +423,9 @@ def push(snap_filename, release_channels=None):
         release(snap_name, result['revision'], release_channels)
 
 
-def _upload(snap_name, snap_filename):
+def _upload_snap(snap_name, snap_filename):
     store = storeapi.StoreClient()
+    logger.info('Uploading {}'.format(snap_filename))
     with _requires_login():
         tracker = store.upload(snap_name, snap_filename)
     result = tracker.track()
@@ -430,28 +435,23 @@ def _upload(snap_name, snap_filename):
 
 def _upload_delta(snap_name, snap_filename, source_snap):
     store = storeapi.StoreClient()
-    delta_format = 'xdelta'
-    logger.info('Successfully got cached source snap {}, '
-                'generating delta.'.format(source_snap))
+    delta_format = 'xdelta3'
+    logger.info('Found cached source snap {}'.format(source_snap))
     target_snap = os.path.join(os.getcwd(), snap_filename)
 
     try:
-        xdelta_generator = deltas.XDeltaGenerator(
+        xdelta_generator = deltas.XDelta3Generator(
             source_path=source_snap, target_path=target_snap)
         delta_filename = xdelta_generator.make_delta()
-        logger.info('Delta generated: {}'.format(delta_filename))
     except DeltaGenerationError:
-        logger.warning(
-            'Delta generation failed for source: '
-            '{}, target: {}, falling back to full snap.'.format(
-                source_snap, target_snap))
-        return _upload(snap_name, snap_filename)
+        raise StoreDeltaApplicationError
 
     snap_hashes = {'source_hash': calculate_sha3_384(source_snap),
                    'target_hash': calculate_sha3_384(target_snap),
                    'delta_hash': calculate_sha3_384(delta_filename)}
 
     try:
+        logger.info('Uploading delta {}'.format(delta_filename))
         with _requires_login():
             delta_tracker = store.upload(
                 snap_name,
@@ -462,10 +462,11 @@ def _upload_delta(snap_name, snap_filename, source_snap):
                 delta_hash=snap_hashes['delta_hash'])
         result = delta_tracker.track()
         delta_tracker.raise_for_code()
-    except storeapi.errors.StoreReviewError:
-        logger.warning(
-            'Error uploading delta, falling back to full snap.')
-        return _upload(snap_name, snap_filename)
+    except storeapi.errors.StoreReviewError as e:
+        if e.code == 'processing_delta_application_error':
+            raise StoreDeltaApplicationError
+        else:
+            raise
     finally:
         if os.path.isfile(delta_filename):
             try:
