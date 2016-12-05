@@ -28,7 +28,8 @@ from snapcraft import (
     storeapi,
     tests
 )
-from snapcraft.internal.cache._snap import _rewrite_snap_filename_with_revision
+from snapcraft.file_utils import calculate_sha3_384
+from snapcraft.internal.cache._snap import _rewrite_snap_filename_with_hash
 from snapcraft.main import main
 from snapcraft.storeapi.errors import (
     StoreDeltaApplicationError,
@@ -291,6 +292,8 @@ class PushCommandDeltasTestCase(tests.TestCase):
         main(['init'])
         main(['snap'])
         snap_file = glob.glob('*.snap')[0]
+        snap_file_with_full_path = os.path.join(os.getcwd(), snap_file)
+        snap_file_hash = calculate_sha3_384(snap_file_with_full_path)
 
         # Upload
         with mock.patch('snapcraft.storeapi.StatusTracker'):
@@ -301,12 +304,18 @@ class PushCommandDeltasTestCase(tests.TestCase):
             'snapcraft',
             'my-snap-name',
             'revisions')
-        cached_snap = _rewrite_snap_filename_with_revision(
-            snap_file,
-            self.new_snap_revision)
 
-        self.assertEqual(self.enable_deltas, os.path.isfile(
-            os.path.join(revision_cache, cached_snap)))
+        cached_snap = _rewrite_snap_filename_with_hash(
+            snap_file,
+            snap_file_hash)
+        cached_snap_path = os.path.join(revision_cache, cached_snap)
+
+        self.assertEqual(self.enable_deltas, os.path.isfile(cached_snap_path))
+
+        # verify if the snap file and cached file have the same hash
+        if self.enable_deltas:
+            cached_snap_hash = calculate_sha3_384(cached_snap_path)
+            self.assertEqual(snap_file_hash, cached_snap_hash)
 
     def test_push_revision_uses_available_delta(self):
         self.useFixture(fixture_setup.FakeTerminal())
@@ -433,14 +442,15 @@ class PushCommandDeltasWithPruneTestCase(tests.TestCase):
         main(['snap'])
         snap_file = glob.glob('*.snap')[0]
 
+        snap_file_with_full_path = os.path.join(os.getcwd(), snap_file)
+        snap_cache_hash = calculate_sha3_384(snap_file_with_full_path)
+
         # Upload
         with mock.patch('snapcraft.storeapi.StatusTracker'):
             main(['push', snap_file])
 
-        real_cached_snap = _rewrite_snap_filename_with_revision(
-            snap_file,
-            snap_revision
-        )
+        real_cached_snap = _rewrite_snap_filename_with_hash(
+            snap_file, snap_cache_hash)
         self.assertTrue(
             os.path.isfile(os.path.join(revision_cache, real_cached_snap)))
 
@@ -448,3 +458,22 @@ class PushCommandDeltasWithPruneTestCase(tests.TestCase):
             self.assertFalse(
                 os.path.isfile(os.path.join(revision_cache, snap)))
         self.assertEqual(1, len(os.listdir(revision_cache)))
+
+        # create an additional snap
+        main(['snap'])
+        new_snap_file = glob.glob('*.snap')[0]
+
+        # Upload another one
+        with mock.patch('snapcraft.storeapi.StatusTracker'):
+            main(['push', new_snap_file])
+
+        # the prune called, there should only have latest
+        # cached file left in cache folder
+        new_snap_file_with_full_path = os.path.join(os.getcwd(), new_snap_file)
+        new_snap_cache_hash = calculate_sha3_384(new_snap_file_with_full_path)
+
+        real_cached_snap = _rewrite_snap_filename_with_hash(
+            new_snap_file, new_snap_cache_hash)
+        self.assertEqual(1, len(os.listdir(revision_cache)))
+        self.assertTrue(
+            os.path.isfile(os.path.join(revision_cache, real_cached_snap)))
