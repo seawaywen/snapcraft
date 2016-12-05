@@ -216,4 +216,8 @@ def calculate_sha3_384(path):
             if not buf:
                 break
             hasher.update(buf)
-        return hasher.hexdigest()
+
+        _hash = hasher.hexdigest()
+        if type(_hash) == bytes:
+            return _hash.decode()
+        return _hash
