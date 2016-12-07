@@ -211,11 +211,9 @@ def calculate_sha3_384(path):
     blocksize = 2**20
     with open(path, 'rb') as snap_file:
         hasher = hashlib.sha3_384()
-        while True:
-            buf = snap_file.read(blocksize)
-            if not buf:
-                break
-            hasher.update(buf)
+        for chunk in iter(
+                lambda: snap_file.read(blocksize), b''):
+            hasher.update(chunk)
 
         _hash = hasher.hexdigest()
         if type(_hash) == bytes:

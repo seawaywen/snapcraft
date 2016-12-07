@@ -275,13 +275,29 @@ class PushCommandDeltasTestCase(tests.TestCase):
         }
         patcher = mock.patch.object(storeapi.StoreClient, 'get_snap_history')
         mock_release = patcher.start()
-        mock_release.return_value = [self.latest_snap_revision]
+        mock_release.return_value = [{
+            'revision': self.latest_snap_revision,
+            'arch': 'amd64'
+        }]
         self.addCleanup(patcher.stop)
 
         patcher = mock.patch.object(storeapi.StoreClient, 'upload')
         self.mock_upload = patcher.start()
         self.addCleanup(patcher.stop)
         self.mock_upload.return_value = mock_tracker
+
+        patcher = mock.patch.object(storeapi.StoreClient, 'download')
+        self.mock_upload = patcher.start()
+        self.addCleanup(patcher.stop)
+        self.mock_upload.return_value = mock_tracker
+        def _test_file(*args, **kwargs):
+            file_dir = os.path.join(self.path, 'snapcraft', 'my-snap-name', 'revisions')
+            file_path = os.path.join(file_dir, 'my-snap-name_8_amd64.snap.download')
+            if not os.path.exists(file_dir):
+                os.makedirs(file_dir)
+            open(file_path, 'a').close()
+        self.mock_upload.side_effect =  _test_file
+
 
     def test_push_revision_cached_with_experimental_deltas(self):
         self.useFixture(fixture_setup.FakeTerminal())
@@ -322,18 +338,20 @@ class PushCommandDeltasTestCase(tests.TestCase):
         main(['snap'])
         snap_file = glob.glob('*.snap')[0]
 
+        #import pdb,sys; pdb.Pdb(stdout=sys.__stdout__).set_trace()
         # Upload
         with mock.patch('snapcraft.storeapi.StatusTracker'):
             main(['push', snap_file])
 
-        # create an additional snap, potentially a delta target
+        """
+        # Create an additional snap, potentially a delta target
         main(['snap'])
         new_snap_file = glob.glob('*.snap')[0]
 
         # Upload
         with mock.patch('snapcraft.storeapi.StatusTracker'):
             main(['push', new_snap_file])
-
+        """
         _, kwargs = self.mock_upload.call_args
         if self.enable_deltas:
             self.assertEqual(kwargs.get('delta_format'), 'xdelta3')
@@ -353,7 +371,7 @@ class PushCommandDeltasTestCase(tests.TestCase):
         with mock.patch('snapcraft.storeapi.StatusTracker'):
             main(['push', snap_file])
 
-        # create a target snap
+        # Create a target snap
         main(['snap'])
 
         # Raise exception in delta upload

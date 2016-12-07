@@ -398,6 +398,15 @@ def push(snap_filename, release_channels=None):
     snap_cache = cache.SnapCache(project_name=snap_name)
     source_snap = snap_cache.get_latest(snap_name)
 
+    import pdb,sys; pdb.Pdb(stdout=sys.__stdout__).set_trace()
+    if source_snap is None:
+        # if source_snap is empty, download the latest revision from store
+        # by default download from stable channel
+
+        # todo: do we need some flag to be able to turn off this download?
+        source_snap = _download_latest_revision_snap(
+                snap_name, snap_cache.snap_cache_dir)
+
     if os.environ.get('DELTA_UPLOADS_EXPERIMENTAL') and source_snap:
         try:
             result = _upload_delta(snap_name, snap_filename, source_snap)
@@ -421,6 +430,21 @@ def push(snap_filename, release_channels=None):
 
     if release_channels:
         release(snap_name, result['revision'], release_channels)
+
+
+def _download_latest_revision_snap(snap_name, download_dir):
+    logger.info('Cannot find the cached source_snap, '
+                'download from store now.')
+    latest_revision = get_latest_revision(snap_name)
+    # Assume download from stable channel
+    channel = 'stable'
+    arch, revision = latest_revision['arch'], latest_revision['revision']
+    download_filename = '{}_{}_{}.snap.download'.format(
+        snap_name, revision, arch)
+    download_file_path = os.path.join(download_dir, download_filename)
+    download(snap_name, channel, download_file_path, arch)
+
+    return download_file_path if os.path.isfile(download_file_path) else None
 
 
 def _upload_snap(snap_name, snap_filename):
@@ -578,7 +602,7 @@ def download(snap_name, channel, download_path, arch):
     """Download snap from the store to download_path"""
     store = storeapi.StoreClient()
     try:
-            store.download(snap_name, channel, download_path, arch)
+        store.download(snap_name, channel, download_path, arch)
     except storeapi.errors.SHAMismatchError:
         raise RuntimeError(
             'Failed to download {} at {} (mismatched SHA)'.format(
